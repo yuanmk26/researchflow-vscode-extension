@@ -1,0 +1,61 @@
+{
+  "name": "researchflow",
+  "displayName": "ResearchFlow",
+  "description": "AI-powered research workflow assistant",
+  "version": "0.0.1",
+  "publisher": "researchflow",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:researchflow.initProject",
+    "onView:researchflow.projects"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "researchflow.initProject",
+        "title": "ResearchFlow: Init Project"
+      },
+      {
+        "command": "researchflow.recommendCitations",
+        "title": "ResearchFlow: Recommend Citations"
+      },
+      {
+        "command": "researchflow.draftCaption",
+        "title": "ResearchFlow: Draft Caption"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "researchflow",
+          "title": "ResearchFlow",
+          "icon": "resources/researchflow.svg"
+        }
+      ]
+    },
+    "views": {
+      "researchflow": [
+        {
+          "id": "researchflow.projects",
+          "name": "Projects"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.5.4"
+  }
+}
