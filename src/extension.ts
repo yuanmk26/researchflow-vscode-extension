@@ -6,13 +6,19 @@ import { createRecommendCitationsCommand } from "./commands/recommendCitations";
 import { CoreClient } from "./services/coreClient";
 import { ProjectManager } from "./state/projectManager";
 import { ProjectTreeProvider } from "./views/projectTreeProvider";
+import { ReferencesTreeProvider } from "./views/referencesTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
   const projectManager = new ProjectManager();
   const coreClient = new CoreClient();
   const projectTreeProvider = new ProjectTreeProvider();
+  const referencesTreeProvider = new ReferencesTreeProvider();
 
-  const treeDisposable = vscode.window.registerTreeDataProvider("researchflow.projects", projectTreeProvider);
+  const projectsTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.projects", projectTreeProvider);
+  const referencesTreeDisposable = vscode.window.registerTreeDataProvider(
+    "researchflow.references",
+    referencesTreeProvider
+  );
   const initProjectDisposable = vscode.commands.registerCommand(
     "researchflow.initProject",
     createInitProjectCommand(projectManager)
@@ -27,7 +33,8 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    treeDisposable,
+    projectsTreeDisposable,
+    referencesTreeDisposable,
     initProjectDisposable,
     recommendCitationsDisposable,
     draftCaptionDisposable

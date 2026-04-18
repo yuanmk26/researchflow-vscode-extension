@@ -12,7 +12,8 @@
   ],
   "activationEvents": [
     "onCommand:researchflow.initProject",
-    "onView:researchflow.projects"
+    "onView:researchflow.projects",
+    "onView:researchflow.references"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -44,6 +45,10 @@
         {
           "id": "researchflow.projects",
           "name": "Projects"
+        },
+        {
+          "id": "researchflow.references",
+          "name": "References"
         }
       ]
     }
