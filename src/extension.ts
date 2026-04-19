@@ -8,20 +8,29 @@ import { createRecommendCitationsCommand } from "./commands/recommendCitations";
 import { createSelectProjectFolderCommand } from "./commands/selectProjectFolder";
 import { CoreClient } from "./services/coreClient";
 import { ProjectManager } from "./state/projectManager";
+import { AnalysisTreeProvider } from "./views/analysisTreeProvider";
 import { ProjectTreeProvider } from "./views/projectTreeProvider";
 import { ReferencesTreeProvider } from "./views/referencesTreeProvider";
+import { StorageTreeProvider } from "./views/storageTreeProvider";
+import { WritingTreeProvider } from "./views/writingTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
   const projectManager = new ProjectManager();
   const coreClient = new CoreClient();
   const projectTreeProvider = new ProjectTreeProvider(projectManager);
   const referencesTreeProvider = new ReferencesTreeProvider();
+  const analysisTreeProvider = new AnalysisTreeProvider();
+  const writingTreeProvider = new WritingTreeProvider();
+  const storageTreeProvider = new StorageTreeProvider();
 
   const projectsTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.projects", projectTreeProvider);
   const referencesTreeDisposable = vscode.window.registerTreeDataProvider(
     "researchflow.references",
     referencesTreeProvider
   );
+  const analysisTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.analysis", analysisTreeProvider);
+  const writingTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.writing", writingTreeProvider);
+  const storageTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.storage", storageTreeProvider);
   const initProjectDisposable = vscode.commands.registerCommand(
     "researchflow.initProject",
     async (): Promise<void> => {
@@ -63,6 +72,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     projectsTreeDisposable,
     referencesTreeDisposable,
+    analysisTreeDisposable,
+    writingTreeDisposable,
+    storageTreeDisposable,
     initProjectDisposable,
     reinitializeProjectDisposable,
     openProjectDirectoryDisposable,

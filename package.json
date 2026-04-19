@@ -13,7 +13,10 @@
   "activationEvents": [
     "onCommand:researchflow.initProject",
     "onView:researchflow.projects",
-    "onView:researchflow.references"
+    "onView:researchflow.references",
+    "onView:researchflow.analysis",
+    "onView:researchflow.writing",
+    "onView:researchflow.storage"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -70,6 +73,18 @@
         {
           "id": "researchflow.references",
           "name": "References"
+        },
+        {
+          "id": "researchflow.analysis",
+          "name": "Analysis"
+        },
+        {
+          "id": "researchflow.writing",
+          "name": "Writing"
+        },
+        {
+          "id": "researchflow.storage",
+          "name": "Storage"
         }
       ]
     },
