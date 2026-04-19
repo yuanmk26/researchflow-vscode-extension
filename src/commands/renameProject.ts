@@ -21,7 +21,7 @@ export function createRenameProjectCommand(projectManager: ProjectManager): () =
       return;
     }
 
-    const initialized = await projectManager.projectExists(workspaceFolder);
+    const initialized = await projectManager.isProjectInitialized(workspaceFolder);
     if (!initialized) {
       void vscode.window.showWarningMessage("Initialize the ResearchFlow project before renaming it.");
       return;

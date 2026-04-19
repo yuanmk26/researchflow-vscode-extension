@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { Project } from "../types";
 
 export type ProjectDirectorySource = "project" | "workspace" | "none";
+export const REQUIRED_PROJECT_DIRECTORIES = ["References", "Analysis", "Figures", "Tables", "Data", "Writing"] as const;
 
 export interface ProjectDirectoryInfo {
   initialized: boolean;
@@ -48,6 +49,39 @@ export class ProjectManager {
     }
   }
 
+  public async hasRequiredProjectDirectories(rootUri: vscode.Uri): Promise<boolean> {
+    for (const directoryName of REQUIRED_PROJECT_DIRECTORIES) {
+      const directoryUri = vscode.Uri.joinPath(rootUri, directoryName);
+
+      try {
+        const stat = await vscode.workspace.fs.stat(directoryUri);
+        if ((stat.type & vscode.FileType.Directory) === 0) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  public async isProjectInitialized(workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
+    const exists = await this.projectExists(workspaceFolder);
+    if (!exists) {
+      return false;
+    }
+
+    const project = await this.loadProject(workspaceFolder);
+    if (!project) {
+      return false;
+    }
+
+    const rootPath = project.rootPath?.trim();
+    const rootUri = rootPath ? vscode.Uri.file(rootPath) : workspaceFolder.uri;
+    return this.hasRequiredProjectDirectories(rootUri);
+  }
+
   public async getProjectDirectoryInfo(): Promise<ProjectDirectoryInfo> {
     const workspaceFolder = this.getWorkspaceFolder();
 
@@ -55,14 +89,15 @@ export class ProjectManager {
       return { initialized: false, source: "none" };
     }
 
-    const exists = await this.projectExists(workspaceFolder);
-    if (exists) {
-      const project = await this.loadProject(workspaceFolder);
-      if (project) {
-        const rootPath = project.rootPath?.trim();
+    const project = await this.loadProject(workspaceFolder);
+    if (project) {
+      const rootPath = project.rootPath?.trim();
+      const rootUri = rootPath ? vscode.Uri.file(rootPath) : workspaceFolder.uri;
+      const initialized = await this.hasRequiredProjectDirectories(rootUri);
+      if (initialized) {
         return {
           initialized: true,
-          path: rootPath || workspaceFolder.uri.fsPath,
+          path: rootUri.fsPath,
           projectName: project.name,
           source: "project",
           workspaceFolder

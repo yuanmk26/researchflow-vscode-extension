@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { ProjectManager } from "../state/projectManager";
+import { ProjectManager, REQUIRED_PROJECT_DIRECTORIES } from "../state/projectManager";
 import { Project } from "../types";
 
 export function createInitProjectCommand(projectManager: ProjectManager): () => Promise<void> {
@@ -26,7 +26,12 @@ export function createInitProjectCommand(projectManager: ProjectManager): () => 
     try {
       await vscode.workspace.fs.createDirectory(configFolder);
       await vscode.workspace.fs.writeFile(configPath, new TextEncoder().encode(payload));
-      void vscode.window.showInformationMessage(`ResearchFlow project initialized: ${project.name}`);
+      for (const directoryName of REQUIRED_PROJECT_DIRECTORIES) {
+        const directoryUri = vscode.Uri.joinPath(workspaceFolder.uri, directoryName);
+        await vscode.workspace.fs.createDirectory(directoryUri);
+      }
+
+      void vscode.window.showInformationMessage(`ResearchFlow project initialized: ${project.name} (required directories ready)`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       void vscode.window.showErrorMessage(`Failed to initialize project: ${message}`);
