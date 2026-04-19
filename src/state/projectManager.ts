@@ -4,6 +4,14 @@ import { Project } from "../types";
 
 export type ProjectDirectorySource = "project" | "workspace" | "none";
 export const REQUIRED_PROJECT_DIRECTORIES = ["References", "Analysis", "Figures", "Tables", "Data", "Writing"] as const;
+export const REQUIRED_PROJECT_METADATA_FILES = [
+  "analysis.json",
+  "data.json",
+  "figures.json",
+  "references.json",
+  "tables.json",
+  "writing.json"
+] as const;
 
 export interface ProjectDirectoryInfo {
   initialized: boolean;
@@ -20,6 +28,10 @@ export class ProjectManager {
 
   public getProjectConfigPath(workspaceFolder: vscode.WorkspaceFolder): vscode.Uri {
     return vscode.Uri.joinPath(workspaceFolder.uri, ".researchflow", "project.json");
+  }
+
+  public getProjectMetadataPath(workspaceFolder: vscode.WorkspaceFolder, filename: string): vscode.Uri {
+    return vscode.Uri.joinPath(workspaceFolder.uri, ".researchflow", filename);
   }
 
   public async projectExists(workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
@@ -66,6 +78,30 @@ export class ProjectManager {
     return true;
   }
 
+  public async hasRequiredProjectMetadataFiles(workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
+    for (const filename of REQUIRED_PROJECT_METADATA_FILES) {
+      const fileUri = this.getProjectMetadataPath(workspaceFolder, filename);
+
+      try {
+        const stat = await vscode.workspace.fs.stat(fileUri);
+        if ((stat.type & vscode.FileType.File) === 0) {
+          return false;
+        }
+
+        const raw = await vscode.workspace.fs.readFile(fileUri);
+        const decoded = new TextDecoder("utf-8").decode(raw);
+        const parsed: unknown = JSON.parse(decoded);
+        if (!Array.isArray(parsed)) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   public async isProjectInitialized(workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
     const exists = await this.projectExists(workspaceFolder);
     if (!exists) {
@@ -79,7 +115,12 @@ export class ProjectManager {
 
     const rootPath = project.rootPath?.trim();
     const rootUri = rootPath ? vscode.Uri.file(rootPath) : workspaceFolder.uri;
-    return this.hasRequiredProjectDirectories(rootUri);
+    const hasDirectories = await this.hasRequiredProjectDirectories(rootUri);
+    if (!hasDirectories) {
+      return false;
+    }
+
+    return this.hasRequiredProjectMetadataFiles(workspaceFolder);
   }
 
   public async getProjectDirectoryInfo(): Promise<ProjectDirectoryInfo> {
@@ -93,7 +134,9 @@ export class ProjectManager {
     if (project) {
       const rootPath = project.rootPath?.trim();
       const rootUri = rootPath ? vscode.Uri.file(rootPath) : workspaceFolder.uri;
-      const initialized = await this.hasRequiredProjectDirectories(rootUri);
+      const hasDirectories = await this.hasRequiredProjectDirectories(rootUri);
+      const hasMetadataFiles = await this.hasRequiredProjectMetadataFiles(workspaceFolder);
+      const initialized = hasDirectories && hasMetadataFiles;
       if (initialized) {
         return {
           initialized: true,

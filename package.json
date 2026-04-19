@@ -45,6 +45,11 @@
         "command": "researchflow.renameProject",
         "title": "ResearchFlow: Rename Project",
         "icon": "$(edit)"
+      },
+      {
+        "command": "researchflow.reinitializeProject",
+        "title": "ResearchFlow: Reinitialize Project",
+        "icon": "$(sync)"
       }
     ],
     "viewsContainers": {
@@ -91,7 +96,7 @@
           "group": "navigation"
         },
         {
-          "command": "researchflow.initProject",
+          "command": "researchflow.reinitializeProject",
           "when": "view == researchflow.projects && viewItem == projectNameUninitialized",
           "group": "inline"
         },
@@ -101,7 +106,7 @@
           "group": "inline"
         },
         {
-          "command": "researchflow.initProject",
+          "command": "researchflow.reinitializeProject",
           "when": "view == researchflow.projects && viewItem == projectNameUninitialized",
           "group": "navigation"
         },

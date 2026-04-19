@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { ProjectManager, REQUIRED_PROJECT_DIRECTORIES } from "../state/projectManager";
+import { ProjectManager, REQUIRED_PROJECT_DIRECTORIES, REQUIRED_PROJECT_METADATA_FILES } from "../state/projectManager";
 import { Project } from "../types";
 
 export function createInitProjectCommand(projectManager: ProjectManager): () => Promise<void> {
@@ -31,13 +31,17 @@ export function createInitProjectCommand(projectManager: ProjectManager): () => 
         await vscode.workspace.fs.createDirectory(directoryUri);
       }
 
-      void vscode.window.showInformationMessage(`ResearchFlow project initialized: ${project.name} (required directories ready)`);
+      for (const filename of REQUIRED_PROJECT_METADATA_FILES) {
+        const metadataPath = projectManager.getProjectMetadataPath(workspaceFolder, filename);
+        await vscode.workspace.fs.writeFile(metadataPath, new TextEncoder().encode("[]"));
+      }
+
+      void vscode.window.showInformationMessage(
+        `ResearchFlow project initialized: ${project.name} (required directories and metadata files ready)`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       void vscode.window.showErrorMessage(`Failed to initialize project: ${message}`);
     }
-
-    // TODO: Add overwrite protection/versioning strategy for project.json.
-    // TODO: Validate project shape with a schema before writing.
   };
 }

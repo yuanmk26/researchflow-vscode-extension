@@ -29,6 +29,13 @@ export function activate(context: vscode.ExtensionContext): void {
       projectTreeProvider.refresh();
     }
   );
+  const reinitializeProjectDisposable = vscode.commands.registerCommand(
+    "researchflow.reinitializeProject",
+    async (): Promise<void> => {
+      await createInitProjectCommand(projectManager)();
+      projectTreeProvider.refresh();
+    }
+  );
   const openProjectDirectoryDisposable = vscode.commands.registerCommand(
     "researchflow.openProjectDirectory",
     createOpenProjectDirectoryCommand(projectManager)
@@ -57,6 +64,7 @@ export function activate(context: vscode.ExtensionContext): void {
     projectsTreeDisposable,
     referencesTreeDisposable,
     initProjectDisposable,
+    reinitializeProjectDisposable,
     openProjectDirectoryDisposable,
     selectProjectFolderDisposable,
     renameProjectDisposable,
