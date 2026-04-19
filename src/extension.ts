@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 
+import { createAnalysisNewFileCommand, createAnalysisNewFolderCommand } from "./commands/analysisCreateEntry";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
 import { createInitProjectCommand } from "./commands/initProject";
 import { createOpenProjectDirectoryCommand } from "./commands/openProjectDirectory";
@@ -19,7 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const coreClient = new CoreClient();
   const projectTreeProvider = new ProjectTreeProvider(projectManager);
   const referencesTreeProvider = new ReferencesTreeProvider();
-  const analysisTreeProvider = new AnalysisTreeProvider();
+  const analysisTreeProvider = new AnalysisTreeProvider(projectManager);
   const writingTreeProvider = new WritingTreeProvider();
   const storageTreeProvider = new StorageTreeProvider();
 
@@ -36,6 +37,7 @@ export function activate(context: vscode.ExtensionContext): void {
     async (): Promise<void> => {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
+      analysisTreeProvider.refresh();
     }
   );
   const reinitializeProjectDisposable = vscode.commands.registerCommand(
@@ -43,6 +45,7 @@ export function activate(context: vscode.ExtensionContext): void {
     async (): Promise<void> => {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
+      analysisTreeProvider.refresh();
     }
   );
   const openProjectDirectoryDisposable = vscode.commands.registerCommand(
@@ -68,6 +71,18 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.draftCaption",
     createDraftCaptionCommand(coreClient)
   );
+  const analysisNewFileDisposable = vscode.commands.registerCommand(
+    "researchflow.analysis.newFile",
+    createAnalysisNewFileCommand(analysisTreeProvider)
+  );
+  const analysisNewFolderDisposable = vscode.commands.registerCommand(
+    "researchflow.analysis.newFolder",
+    createAnalysisNewFolderCommand(analysisTreeProvider)
+  );
+  const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
+  const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
+  const analysisWatcherChangeDisposable = analysisWatcher.onDidChange(() => analysisTreeProvider.refresh());
+  const analysisWatcherDeleteDisposable = analysisWatcher.onDidDelete(() => analysisTreeProvider.refresh());
 
   context.subscriptions.push(
     projectsTreeDisposable,
@@ -81,7 +96,13 @@ export function activate(context: vscode.ExtensionContext): void {
     selectProjectFolderDisposable,
     renameProjectDisposable,
     recommendCitationsDisposable,
-    draftCaptionDisposable
+    draftCaptionDisposable,
+    analysisNewFileDisposable,
+    analysisNewFolderDisposable,
+    analysisWatcher,
+    analysisWatcherCreateDisposable,
+    analysisWatcherChangeDisposable,
+    analysisWatcherDeleteDisposable
   );
 }
 

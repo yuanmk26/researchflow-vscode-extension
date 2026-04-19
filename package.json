@@ -53,6 +53,16 @@
         "command": "researchflow.reinitializeProject",
         "title": "ResearchFlow: Reinitialize Project",
         "icon": "$(sync)"
+      },
+      {
+        "command": "researchflow.analysis.newFile",
+        "title": "ResearchFlow: Analysis New File",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "researchflow.analysis.newFolder",
+        "title": "ResearchFlow: Analysis New Folder",
+        "icon": "$(new-folder)"
       }
     ],
     "viewsContainers": {
@@ -89,6 +99,18 @@
       ]
     },
     "menus": {
+      "view/title": [
+        {
+          "command": "researchflow.analysis.newFile",
+          "when": "view == researchflow.analysis",
+          "group": "navigation@1"
+        },
+        {
+          "command": "researchflow.analysis.newFolder",
+          "when": "view == researchflow.analysis",
+          "group": "navigation@2"
+        }
+      ],
       "view/item/context": [
         {
           "command": "researchflow.selectProjectFolder",
@@ -128,6 +150,26 @@
         {
           "command": "researchflow.renameProject",
           "when": "view == researchflow.projects && viewItem == projectNameInitialized",
+          "group": "navigation"
+        },
+        {
+          "command": "researchflow.analysis.newFile",
+          "when": "view == researchflow.analysis && viewItem == analysisDirectory",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.analysis.newFolder",
+          "when": "view == researchflow.analysis && viewItem == analysisDirectory",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.analysis.newFile",
+          "when": "view == researchflow.analysis && viewItem == analysisFile",
+          "group": "navigation"
+        },
+        {
+          "command": "researchflow.analysis.newFolder",
+          "when": "view == researchflow.analysis && viewItem == analysisFile",
           "group": "navigation"
         }
       ]
