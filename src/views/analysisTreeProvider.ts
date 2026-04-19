@@ -3,7 +3,8 @@ import * as path from "path";
 
 import { ProjectManager } from "../state/projectManager";
 
-export type AnalysisTreeItemKind = "directory" | "file" | "info";
+export type AnalysisTreeItemKind = "directory" | "file" | "info" | "pending";
+export type PendingCreateKind = "file" | "folder";
 
 export class AnalysisTreeItem extends vscode.TreeItem {
   public readonly kind: AnalysisTreeItemKind;
@@ -18,8 +19,7 @@ export class AnalysisTreeItem extends vscode.TreeItem {
     super(label, collapsibleState);
     this.kind = kind;
     this.uri = uri;
-    this.contextValue =
-      kind === "directory" ? "analysisDirectory" : kind === "file" ? "analysisFile" : "analysisInfo";
+    this.contextValue = this.getContextValue(kind);
 
     if (uri) {
       this.resourceUri = uri;
@@ -34,11 +34,32 @@ export class AnalysisTreeItem extends vscode.TreeItem {
       };
     }
   }
+
+  private getContextValue(kind: AnalysisTreeItemKind): string {
+    if (kind === "directory") {
+      return "analysisDirectory";
+    }
+
+    if (kind === "file") {
+      return "analysisFile";
+    }
+
+    if (kind === "pending") {
+      return "analysisPendingCreate";
+    }
+
+    return "analysisInfo";
+  }
 }
 
 export class AnalysisTreeProvider implements vscode.TreeDataProvider<AnalysisTreeItem> {
   private readonly _onDidChangeTreeData: vscode.EventEmitter<AnalysisTreeItem | undefined | void> =
     new vscode.EventEmitter<AnalysisTreeItem | undefined | void>();
+  private pendingCreate?: {
+    kind: PendingCreateKind;
+    parentUri: vscode.Uri;
+    placeholderLabel: string;
+  };
 
   public readonly onDidChangeTreeData: vscode.Event<AnalysisTreeItem | undefined | void> =
     this._onDidChangeTreeData.event;
@@ -51,6 +72,18 @@ export class AnalysisTreeProvider implements vscode.TreeDataProvider<AnalysisTre
 
   public getTreeItem(element: AnalysisTreeItem): vscode.TreeItem {
     return element;
+  }
+
+  public setPendingCreate(kind: PendingCreateKind, parentUri: vscode.Uri): void {
+    this.pendingCreate = {
+      kind,
+      parentUri,
+      placeholderLabel: kind === "file" ? "New File" : "New Folder"
+    };
+  }
+
+  public clearPendingCreate(): void {
+    this.pendingCreate = undefined;
   }
 
   public async getChildren(element?: AnalysisTreeItem): Promise<AnalysisTreeItem[]> {
@@ -69,10 +102,12 @@ export class AnalysisTreeProvider implements vscode.TreeDataProvider<AnalysisTre
         return [];
       }
 
-      return this.readDirectoryItems(element.uri);
+      const children = await this.readDirectoryItems(element.uri);
+      return this.withPendingCreate(children, element.uri);
     }
 
-    return this.readDirectoryItems(analysisRootResult.uri);
+    const rootItems = await this.readDirectoryItems(analysisRootResult.uri);
+    return this.withPendingCreate(rootItems, analysisRootResult.uri);
   }
 
   public async getAnalysisRootUri(): Promise<{ uri?: vscode.Uri; message: string }> {
@@ -135,5 +170,22 @@ export class AnalysisTreeProvider implements vscode.TreeDataProvider<AnalysisTre
       item.description = path.extname(name);
       return item;
     });
+  }
+
+  private withPendingCreate(items: AnalysisTreeItem[], parentUri: vscode.Uri): AnalysisTreeItem[] {
+    if (!this.pendingCreate || this.pendingCreate.parentUri.toString() !== parentUri.toString()) {
+      return items;
+    }
+
+    const pendingItem = new AnalysisTreeItem(
+      this.pendingCreate.placeholderLabel,
+      "pending",
+      vscode.TreeItemCollapsibleState.None
+    );
+    pendingItem.id = `${parentUri.toString()}:pending:${this.pendingCreate.kind}`;
+    pendingItem.iconPath = new vscode.ThemeIcon(this.pendingCreate.kind === "file" ? "new-file" : "new-folder");
+    pendingItem.description = "Creating...";
+
+    return [pendingItem, ...items];
   }
 }
