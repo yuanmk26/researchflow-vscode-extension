@@ -11,22 +11,12 @@ export function createInitProjectCommand(projectManager: ProjectManager): () => 
       return;
     }
 
-    const projectName = await vscode.window.showInputBox({
-      prompt: "Enter a project name",
-      placeHolder: "My Research Project",
-      ignoreFocusOut: true,
-      validateInput: (value: string) => (value.trim().length > 0 ? null : "Project name is required")
-    });
-
-    if (!projectName) {
-      return;
-    }
-
     const configPath = projectManager.getProjectConfigPath(workspaceFolder);
     const configFolder = vscode.Uri.joinPath(workspaceFolder.uri, ".researchflow");
+    const projectName = workspaceFolder.name;
 
     const project: Project = {
-      name: projectName.trim(),
+      name: projectName,
       rootPath: workspaceFolder.uri.fsPath,
       createdAt: new Date().toISOString()
     };

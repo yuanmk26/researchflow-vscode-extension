@@ -35,6 +35,16 @@
         "command": "researchflow.openProjectDirectory",
         "title": "ResearchFlow: Open Project Directory",
         "icon": "$(folder-opened)"
+      },
+      {
+        "command": "researchflow.selectProjectFolder",
+        "title": "ResearchFlow: Select Project Folder",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "researchflow.renameProject",
+        "title": "ResearchFlow: Rename Project",
+        "icon": "$(edit)"
       }
     ],
     "viewsContainers": {
@@ -61,17 +71,12 @@
     "menus": {
       "view/item/context": [
         {
-          "command": "researchflow.openProjectDirectory",
+          "command": "researchflow.selectProjectFolder",
           "when": "view == researchflow.projects && viewItem == activeProject",
           "group": "inline"
         },
         {
-          "command": "researchflow.openProjectDirectory",
-          "when": "view == researchflow.projects && viewItem == activeProjectUninitialized",
-          "group": "inline"
-        },
-        {
-          "command": "researchflow.initProject",
+          "command": "researchflow.selectProjectFolder",
           "when": "view == researchflow.projects && viewItem == activeProjectUninitialized",
           "group": "inline"
         },
@@ -83,6 +88,26 @@
         {
           "command": "researchflow.openProjectDirectory",
           "when": "view == researchflow.projects && viewItem == activeProjectUninitialized",
+          "group": "navigation"
+        },
+        {
+          "command": "researchflow.initProject",
+          "when": "view == researchflow.projects && viewItem == projectNameUninitialized",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.renameProject",
+          "when": "view == researchflow.projects && viewItem == projectNameInitialized",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.initProject",
+          "when": "view == researchflow.projects && viewItem == projectNameUninitialized",
+          "group": "navigation"
+        },
+        {
+          "command": "researchflow.renameProject",
+          "when": "view == researchflow.projects && viewItem == projectNameInitialized",
           "group": "navigation"
         }
       ]

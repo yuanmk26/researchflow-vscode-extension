@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 
 import { ProjectDirectoryInfo, ProjectManager } from "../state/projectManager";
 
@@ -63,6 +64,12 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
         children: [
           new ProjectTreeItem({
             collapsibleState: vscode.TreeItemCollapsibleState.None,
+            description: "No workspace folder",
+            label: "Project Name",
+            tooltip: "Open a folder first"
+          }),
+          new ProjectTreeItem({
+            collapsibleState: vscode.TreeItemCollapsibleState.None,
             command: { command: "researchflow.openProjectDirectory", title: "Open Project Directory" },
             description: "No workspace folder",
             label: "Current Directory",
@@ -77,15 +84,21 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
     }
 
     const pathSourceLabel = directoryInfo.initialized ? "Project config" : "Workspace (uninitialized)";
-    const projectName = directoryInfo.projectName?.trim();
-    const activeProjectDescription = directoryInfo.initialized
-      ? projectName
-        ? `${projectName} (${pathSourceLabel})`
-        : pathSourceLabel
-      : "Workspace (uninitialized)";
+    const projectNameFromConfig = directoryInfo.projectName?.trim();
+    const projectNameFromPath = path.basename(directoryInfo.path);
+    const projectName = projectNameFromConfig || projectNameFromPath;
 
     return new ProjectTreeItem({
       children: [
+        new ProjectTreeItem({
+          collapsibleState: vscode.TreeItemCollapsibleState.None,
+          contextValue: directoryInfo.initialized ? "projectNameInitialized" : "projectNameUninitialized",
+          description: projectName,
+          label: "Project Name",
+          tooltip: directoryInfo.initialized
+            ? "Use the action button on the right to rename the project"
+            : "Use the action button on the right to initialize the project"
+        }),
         new ProjectTreeItem({
           collapsibleState: vscode.TreeItemCollapsibleState.None,
           command: { command: "researchflow.openProjectDirectory", title: "Open Project Directory" },
@@ -96,7 +109,7 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
       ],
       collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
       contextValue: directoryInfo.initialized ? "activeProject" : "activeProjectUninitialized",
-      description: activeProjectDescription,
+      description: pathSourceLabel,
       id: "researchflow.activeProject",
       label: "Active Project",
       tooltip: directoryInfo.path
