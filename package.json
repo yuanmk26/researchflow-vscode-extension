@@ -20,7 +20,8 @@
     "commands": [
       {
         "command": "researchflow.initProject",
-        "title": "ResearchFlow: Init Project"
+        "title": "ResearchFlow: Init Project",
+        "icon": "$(add)"
       },
       {
         "command": "researchflow.recommendCitations",
@@ -29,6 +30,11 @@
       {
         "command": "researchflow.draftCaption",
         "title": "ResearchFlow: Draft Caption"
+      },
+      {
+        "command": "researchflow.openProjectDirectory",
+        "title": "ResearchFlow: Open Project Directory",
+        "icon": "$(folder-opened)"
       }
     ],
     "viewsContainers": {
@@ -49,6 +55,35 @@
         {
           "id": "researchflow.references",
           "name": "References"
+        }
+      ]
+    },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "researchflow.openProjectDirectory",
+          "when": "view == researchflow.projects && viewItem == activeProject",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.openProjectDirectory",
+          "when": "view == researchflow.projects && viewItem == activeProjectUninitialized",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.initProject",
+          "when": "view == researchflow.projects && viewItem == activeProjectUninitialized",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.openProjectDirectory",
+          "when": "view == researchflow.projects && viewItem == activeProject",
+          "group": "navigation"
+        },
+        {
+          "command": "researchflow.openProjectDirectory",
+          "when": "view == researchflow.projects && viewItem == activeProjectUninitialized",
+          "group": "navigation"
         }
       ]
     }

@@ -1,12 +1,27 @@
 import * as vscode from "vscode";
 
+import { ProjectDirectoryInfo, ProjectManager } from "../state/projectManager";
+
 class ProjectTreeItem extends vscode.TreeItem {
-  public constructor(
-    public readonly label: string,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly children: ProjectTreeItem[] = []
-  ) {
-    super(label, collapsibleState);
+  public readonly children: ProjectTreeItem[];
+
+  public constructor(options: {
+    children?: ProjectTreeItem[];
+    collapsibleState: vscode.TreeItemCollapsibleState;
+    command?: vscode.Command;
+    contextValue?: string;
+    description?: string;
+    id?: string;
+    label: string;
+    tooltip?: string;
+  }) {
+    super(options.label, options.collapsibleState);
+    this.children = options.children ?? [];
+    this.command = options.command;
+    this.contextValue = options.contextValue;
+    this.description = options.description;
+    this.id = options.id;
+    this.tooltip = options.tooltip;
   }
 }
 
@@ -17,6 +32,8 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
   public readonly onDidChangeTreeData: vscode.Event<ProjectTreeItem | undefined | void> =
     this._onDidChangeTreeData.event;
 
+  public constructor(private readonly projectManager: ProjectManager) {}
+
   public refresh(): void {
     this._onDidChangeTreeData.fire();
   }
@@ -25,29 +42,64 @@ export class ProjectTreeProvider implements vscode.TreeDataProvider<ProjectTreeI
     return element;
   }
 
-  public getChildren(element?: ProjectTreeItem): Thenable<ProjectTreeItem[]> {
+  public async getChildren(element?: ProjectTreeItem): Promise<ProjectTreeItem[]> {
     if (element) {
-      return Promise.resolve(element.children);
+      return element.children;
     }
 
-    return Promise.resolve(this.buildRootItems());
+    return this.buildRootItems();
   }
 
-  private buildRootItems(): ProjectTreeItem[] {
-    const activeProject = new ProjectTreeItem("Active Project", vscode.TreeItemCollapsibleState.Expanded, [
-      new ProjectTreeItem("Demo Project", vscode.TreeItemCollapsibleState.None)
-    ]);
+  private async buildRootItems(): Promise<ProjectTreeItem[]> {
+    const directoryInfo = await this.projectManager.getProjectDirectoryInfo();
+    const activeProject = this.buildActiveProjectItem(directoryInfo);
 
-    const papers = new ProjectTreeItem("Papers", vscode.TreeItemCollapsibleState.Collapsed, [
-      new ProjectTreeItem("paper-001.pdf", vscode.TreeItemCollapsibleState.None),
-      new ProjectTreeItem("paper-002.pdf", vscode.TreeItemCollapsibleState.None)
-    ]);
+    return [activeProject];
+  }
 
-    const figures = new ProjectTreeItem("Figures", vscode.TreeItemCollapsibleState.Collapsed, [
-      new ProjectTreeItem("figure-001.png", vscode.TreeItemCollapsibleState.None),
-      new ProjectTreeItem("figure-002.png", vscode.TreeItemCollapsibleState.None)
-    ]);
+  private buildActiveProjectItem(directoryInfo: ProjectDirectoryInfo): ProjectTreeItem {
+    if (!directoryInfo.path) {
+      return new ProjectTreeItem({
+        children: [
+          new ProjectTreeItem({
+            collapsibleState: vscode.TreeItemCollapsibleState.None,
+            command: { command: "researchflow.openProjectDirectory", title: "Open Project Directory" },
+            description: "No workspace folder",
+            label: "Current Directory",
+            tooltip: "Click to choose and open a folder"
+          })
+        ],
+        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+        contextValue: "activeProjectUnavailable",
+        id: "researchflow.activeProject",
+        label: "Active Project"
+      });
+    }
 
-    return [activeProject, papers, figures];
+    const pathSourceLabel = directoryInfo.initialized ? "Project config" : "Workspace (uninitialized)";
+    const projectName = directoryInfo.projectName?.trim();
+    const activeProjectDescription = directoryInfo.initialized
+      ? projectName
+        ? `${projectName} (${pathSourceLabel})`
+        : pathSourceLabel
+      : "Workspace (uninitialized)";
+
+    return new ProjectTreeItem({
+      children: [
+        new ProjectTreeItem({
+          collapsibleState: vscode.TreeItemCollapsibleState.None,
+          command: { command: "researchflow.openProjectDirectory", title: "Open Project Directory" },
+          description: directoryInfo.path,
+          label: "Current Directory",
+          tooltip: `Click to open in file explorer (${pathSourceLabel}: ${directoryInfo.path})`
+        })
+      ],
+      collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+      contextValue: directoryInfo.initialized ? "activeProject" : "activeProjectUninitialized",
+      description: activeProjectDescription,
+      id: "researchflow.activeProject",
+      label: "Active Project",
+      tooltip: directoryInfo.path
+    });
   }
 }
