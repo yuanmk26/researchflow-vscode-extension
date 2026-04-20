@@ -52,7 +52,7 @@ async function collectTaskFiles(taskUri: vscode.Uri): Promise<AnalysisTaskFiles>
 
 async function forceThreeGroupLayout(): Promise<void> {
   await vscode.commands.executeCommand("vscode.setEditorLayout", {
-    groups: [{}, { groups: [{}, {}], orientation: 1 }],
+    groups: [{}, { groups: [{}, {}], orientation: 0 }],
     orientation: 0
   });
 }
