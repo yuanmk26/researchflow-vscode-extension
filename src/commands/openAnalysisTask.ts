@@ -10,6 +10,7 @@ interface AnalysisTaskFiles {
   scripts: vscode.Uri[];
   tables: vscode.Uri[];
 }
+type AnalysisEditorSlot = "first" | "second" | "third";
 
 async function readFilesRecursively(folderUri: vscode.Uri): Promise<vscode.Uri[]> {
   const files: vscode.Uri[] = [];
@@ -57,8 +58,19 @@ async function forceThreeGroupLayout(): Promise<void> {
   });
 }
 
-async function clearEditorsInColumn(viewColumn: vscode.ViewColumn): Promise<void> {
-  const tabGroup = vscode.window.tabGroups.all.find((group) => group.viewColumn === viewColumn);
+async function focusEditorSlot(slot: AnalysisEditorSlot): Promise<void> {
+  const command =
+    slot === "first"
+      ? "workbench.action.focusFirstEditorGroup"
+      : slot === "second"
+        ? "workbench.action.focusSecondEditorGroup"
+        : "workbench.action.focusThirdEditorGroup";
+  await vscode.commands.executeCommand(command);
+}
+
+async function clearEditorsInSlot(slot: AnalysisEditorSlot): Promise<void> {
+  await focusEditorSlot(slot);
+  const tabGroup = vscode.window.tabGroups.activeTabGroup;
   if (!tabGroup || tabGroup.tabs.length === 0) {
     return;
   }
@@ -66,22 +78,24 @@ async function clearEditorsInColumn(viewColumn: vscode.ViewColumn): Promise<void
   await vscode.window.tabGroups.close([...tabGroup.tabs], true);
 }
 
-async function openFilesInTextGroup(files: vscode.Uri[], viewColumn: vscode.ViewColumn): Promise<void> {
+async function openFilesInTextGroup(files: vscode.Uri[], slot: AnalysisEditorSlot): Promise<void> {
+  await focusEditorSlot(slot);
   for (let index = 0; index < files.length; index += 1) {
     await vscode.window.showTextDocument(files[index], {
       preview: false,
       preserveFocus: index !== 0,
-      viewColumn
+      viewColumn: vscode.ViewColumn.Active
     });
   }
 }
 
-async function openFilesInGenericGroup(files: vscode.Uri[], viewColumn: vscode.ViewColumn): Promise<void> {
+async function openFilesInGenericGroup(files: vscode.Uri[], slot: AnalysisEditorSlot): Promise<void> {
+  await focusEditorSlot(slot);
   for (let index = 0; index < files.length; index += 1) {
     await vscode.commands.executeCommand("vscode.open", files[index], {
       preview: false,
       preserveFocus: index !== 0,
-      viewColumn
+      viewColumn: vscode.ViewColumn.Active
     });
   }
 }
@@ -218,7 +232,7 @@ export function createOpenAnalysisTaskCommand(
 ): (target?: vscode.Uri | AnalysisTreeItem) => Promise<void> {
   const openPlaceholderInGroup = async (
     group: AnalysisTaskGroup,
-    viewColumn: vscode.ViewColumn,
+    slot: AnalysisEditorSlot,
     taskName: string
   ): Promise<void> => {
     const placeholdersRoot = vscode.Uri.joinPath(globalStorageUri, "analysis-placeholders");
@@ -227,10 +241,11 @@ export function createOpenAnalysisTaskCommand(
     const title = group === "scripts" ? "Scripts" : group === "figures" ? "Figures" : "Tables";
     const content = `# ${title}\n\nNo ${group} files found for experiment \`${taskName}\`.\n`;
     await vscode.workspace.fs.writeFile(placeholderUri, new TextEncoder().encode(content));
+    await focusEditorSlot(slot);
     await vscode.window.showTextDocument(placeholderUri, {
       preview: false,
       preserveFocus: false,
-      viewColumn
+      viewColumn: vscode.ViewColumn.Active
     });
   };
 
@@ -258,9 +273,9 @@ export function createOpenAnalysisTaskCommand(
     const preferredTable = getRememberedUri(workspaceState, taskUri, "tables", taskFiles.tables) ?? taskFiles.tables[0];
 
     await forceThreeGroupLayout();
-    await clearEditorsInColumn(vscode.ViewColumn.One);
-    await clearEditorsInColumn(vscode.ViewColumn.Two);
-    await clearEditorsInColumn(vscode.ViewColumn.Three);
+    await clearEditorsInSlot("first");
+    await clearEditorsInSlot("second");
+    await clearEditorsInSlot("third");
 
     const taskName = taskUri.path.split("/").pop() ?? "unknown-task";
     const scriptsToOpen = rotatePreferredFirst(taskFiles.scripts, preferredScript);
@@ -268,21 +283,21 @@ export function createOpenAnalysisTaskCommand(
     const tablesToOpen = rotatePreferredFirst(taskFiles.tables, preferredTable);
 
     if (scriptsToOpen.length > 0) {
-      await openFilesInTextGroup(scriptsToOpen, vscode.ViewColumn.One);
+      await openFilesInTextGroup(scriptsToOpen, "first");
     } else {
-      await openPlaceholderInGroup("scripts", vscode.ViewColumn.One, taskName);
+      await openPlaceholderInGroup("scripts", "first", taskName);
     }
 
     if (figuresToOpen.length > 0) {
-      await openFilesInGenericGroup(figuresToOpen, vscode.ViewColumn.Two);
+      await openFilesInGenericGroup(figuresToOpen, "second");
     } else {
-      await openPlaceholderInGroup("figures", vscode.ViewColumn.Two, taskName);
+      await openPlaceholderInGroup("figures", "second", taskName);
     }
 
     if (tablesToOpen.length > 0) {
-      await openFilesInGenericGroup(tablesToOpen, vscode.ViewColumn.Three);
+      await openFilesInGenericGroup(tablesToOpen, "third");
     } else {
-      await openPlaceholderInGroup("tables", vscode.ViewColumn.Three, taskName);
+      await openPlaceholderInGroup("tables", "third", taskName);
     }
 
     if (preferredScript) {
