@@ -13,6 +13,7 @@
   "activationEvents": [
     "onCommand:researchflow.initProject",
     "onCommand:researchflow.analysis.openTask",
+    "onCommand:researchflow.analysis.newScript",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -59,6 +60,11 @@
         "command": "researchflow.analysis.openTask",
         "title": "ResearchFlow: Open Analysis Task",
         "icon": "$(preview)"
+      },
+      {
+        "command": "researchflow.analysis.newScript",
+        "title": "ResearchFlow: Analysis New Script",
+        "icon": "$(new-file)"
       }
     ],
     "viewsContainers": {
@@ -95,6 +101,13 @@
       ]
     },
     "menus": {
+      "view/title": [
+        {
+          "command": "researchflow.analysis.newScript",
+          "when": "view == researchflow.analysis",
+          "group": "navigation@1"
+        }
+      ],
       "view/item/context": [
         {
           "command": "researchflow.selectProjectFolder",
@@ -138,6 +151,11 @@
         },
         {
           "command": "researchflow.analysis.openTask",
+          "when": "view == researchflow.analysis && viewItem == analysisTask",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.analysis.newScript",
           "when": "view == researchflow.analysis && viewItem == analysisTask",
           "group": "inline"
         }

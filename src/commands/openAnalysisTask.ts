@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 
+import { AnalysisTreeItem } from "../views/analysisTreeProvider";
+
 interface AnalysisTaskFiles {
   figures: vscode.Uri[];
   scripts: vscode.Uri[];
@@ -71,8 +73,9 @@ async function openFilesInGenericGroup(files: vscode.Uri[], viewColumn: vscode.V
   }
 }
 
-export function createOpenAnalysisTaskCommand(): (taskUri?: vscode.Uri) => Promise<void> {
-  return async (taskUri?: vscode.Uri): Promise<void> => {
+export function createOpenAnalysisTaskCommand(): (target?: vscode.Uri | AnalysisTreeItem) => Promise<void> {
+  return async (target?: vscode.Uri | AnalysisTreeItem): Promise<void> => {
+    const taskUri = target instanceof vscode.Uri ? target : target?.kind === "task" ? target.uri : undefined;
     if (!taskUri) {
       void vscode.window.showWarningMessage("No analysis task selected.");
       return;
