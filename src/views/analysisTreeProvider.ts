@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 
 import { ProjectManager } from "../state/projectManager";
 
-export type AnalysisTreeItemKind = "task" | "info";
+export type AnalysisTreeItemKind = "task" | "info" | "action";
 
 export class AnalysisTreeItem extends vscode.TreeItem {
   public readonly kind: AnalysisTreeItemKind;
@@ -17,7 +17,8 @@ export class AnalysisTreeItem extends vscode.TreeItem {
     super(label, collapsibleState);
     this.kind = kind;
     this.uri = uri;
-    this.contextValue = kind === "task" ? "analysisTask" : "analysisInfo";
+    this.contextValue =
+      kind === "task" ? "analysisTask" : kind === "action" ? "analysisNewExperimentAction" : "analysisInfo";
 
     if (kind === "task" && uri) {
       this.id = uri.toString();
@@ -27,6 +28,14 @@ export class AnalysisTreeItem extends vscode.TreeItem {
         command: "researchflow.analysis.openTask",
         title: "Open Analysis Task",
         arguments: [uri]
+      };
+    }
+
+    if (kind === "action") {
+      this.iconPath = new vscode.ThemeIcon("add");
+      this.command = {
+        command: "researchflow.analysis.newExperiment",
+        title: "New Experiment"
       };
     }
   }
@@ -54,9 +63,10 @@ export class AnalysisTreeProvider implements vscode.TreeDataProvider<AnalysisTre
       return [];
     }
 
+    const actionItem = new AnalysisTreeItem("New Experiment...", "action", vscode.TreeItemCollapsibleState.None);
     const analysisRootResult = await this.getAnalysisRootUri();
     if (!analysisRootResult.uri) {
-      return [new AnalysisTreeItem(analysisRootResult.message, "info", vscode.TreeItemCollapsibleState.None)];
+      return [actionItem, new AnalysisTreeItem(analysisRootResult.message, "info", vscode.TreeItemCollapsibleState.None)];
     }
 
     const entries = await vscode.workspace.fs.readDirectory(analysisRootResult.uri);
@@ -75,10 +85,13 @@ export class AnalysisTreeProvider implements vscode.TreeDataProvider<AnalysisTre
       );
 
     if (tasks.length === 0) {
-      return [new AnalysisTreeItem("No analysis tasks found in Analysis/", "info", vscode.TreeItemCollapsibleState.None)];
+      return [
+        actionItem,
+        new AnalysisTreeItem("No analysis tasks found in Analysis/", "info", vscode.TreeItemCollapsibleState.None)
+      ];
     }
 
-    return tasks;
+    return [actionItem, ...tasks];
   }
 
   public async getAnalysisRootUri(): Promise<{ uri?: vscode.Uri; message: string }> {
