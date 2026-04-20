@@ -4,7 +4,7 @@ import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExp
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
 import { createInitProjectCommand } from "./commands/initProject";
-import { createOpenAnalysisTaskCommand } from "./commands/openAnalysisTask";
+import { createOpenAnalysisTaskCommand, registerAnalysisTaskLastActiveTracking } from "./commands/openAnalysisTask";
 import { createOpenProjectDirectoryCommand } from "./commands/openProjectDirectory";
 import { createRenameProjectCommand } from "./commands/renameProject";
 import { createRecommendCitationsCommand } from "./commands/recommendCitations";
@@ -75,7 +75,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const openAnalysisTaskDisposable = vscode.commands.registerCommand(
     "researchflow.analysis.openTask",
-    createOpenAnalysisTaskCommand()
+    createOpenAnalysisTaskCommand(context.workspaceState)
   );
   const analysisNewScriptDisposable = vscode.commands.registerCommand(
     "researchflow.analysis.newScript",
@@ -86,6 +86,7 @@ export function activate(context: vscode.ExtensionContext): void {
     createAnalysisNewExperimentCommand(analysisTreeProvider)
   );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
+  const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
   const analysisWatcherChangeDisposable = analysisWatcher.onDidChange(() => analysisTreeProvider.refresh());
   const analysisWatcherDeleteDisposable = analysisWatcher.onDidDelete(() => analysisTreeProvider.refresh());
@@ -107,6 +108,7 @@ export function activate(context: vscode.ExtensionContext): void {
     analysisNewScriptDisposable,
     analysisNewExperimentDisposable,
     analysisWatcher,
+    analysisLastActiveTrackingDisposable,
     analysisWatcherCreateDisposable,
     analysisWatcherChangeDisposable,
     analysisWatcherDeleteDisposable
