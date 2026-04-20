@@ -75,7 +75,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const openAnalysisTaskDisposable = vscode.commands.registerCommand(
     "researchflow.analysis.openTask",
-    createOpenAnalysisTaskCommand(context.workspaceState)
+    createOpenAnalysisTaskCommand(context.workspaceState, context.globalStorageUri)
   );
   const analysisNewScriptDisposable = vscode.commands.registerCommand(
     "researchflow.analysis.newScript",

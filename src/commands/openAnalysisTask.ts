@@ -213,8 +213,27 @@ export function registerAnalysisTaskLastActiveTracking(workspaceState: vscode.Me
 }
 
 export function createOpenAnalysisTaskCommand(
-  workspaceState: vscode.Memento
+  workspaceState: vscode.Memento,
+  globalStorageUri: vscode.Uri
 ): (target?: vscode.Uri | AnalysisTreeItem) => Promise<void> {
+  const openPlaceholderInGroup = async (
+    group: AnalysisTaskGroup,
+    viewColumn: vscode.ViewColumn,
+    taskName: string
+  ): Promise<void> => {
+    const placeholdersRoot = vscode.Uri.joinPath(globalStorageUri, "analysis-placeholders");
+    await vscode.workspace.fs.createDirectory(placeholdersRoot);
+    const placeholderUri = vscode.Uri.joinPath(placeholdersRoot, `${group}.md`);
+    const title = group === "scripts" ? "Scripts" : group === "figures" ? "Figures" : "Tables";
+    const content = `# ${title}\n\nNo ${group} files found for experiment \`${taskName}\`.\n`;
+    await vscode.workspace.fs.writeFile(placeholderUri, new TextEncoder().encode(content));
+    await vscode.window.showTextDocument(placeholderUri, {
+      preview: false,
+      preserveFocus: false,
+      viewColumn
+    });
+  };
+
   return async (target?: vscode.Uri | AnalysisTreeItem): Promise<void> => {
     const taskUri = target instanceof vscode.Uri ? target : target?.kind === "task" ? target.uri : undefined;
     if (!taskUri) {
@@ -243,9 +262,28 @@ export function createOpenAnalysisTaskCommand(
     await clearEditorsInColumn(vscode.ViewColumn.Two);
     await clearEditorsInColumn(vscode.ViewColumn.Three);
 
-    await openFilesInTextGroup(rotatePreferredFirst(taskFiles.scripts, preferredScript), vscode.ViewColumn.One);
-    await openFilesInGenericGroup(rotatePreferredFirst(taskFiles.figures, preferredFigure), vscode.ViewColumn.Two);
-    await openFilesInGenericGroup(rotatePreferredFirst(taskFiles.tables, preferredTable), vscode.ViewColumn.Three);
+    const taskName = taskUri.path.split("/").pop() ?? "unknown-task";
+    const scriptsToOpen = rotatePreferredFirst(taskFiles.scripts, preferredScript);
+    const figuresToOpen = rotatePreferredFirst(taskFiles.figures, preferredFigure);
+    const tablesToOpen = rotatePreferredFirst(taskFiles.tables, preferredTable);
+
+    if (scriptsToOpen.length > 0) {
+      await openFilesInTextGroup(scriptsToOpen, vscode.ViewColumn.One);
+    } else {
+      await openPlaceholderInGroup("scripts", vscode.ViewColumn.One, taskName);
+    }
+
+    if (figuresToOpen.length > 0) {
+      await openFilesInGenericGroup(figuresToOpen, vscode.ViewColumn.Two);
+    } else {
+      await openPlaceholderInGroup("figures", vscode.ViewColumn.Two, taskName);
+    }
+
+    if (tablesToOpen.length > 0) {
+      await openFilesInGenericGroup(tablesToOpen, vscode.ViewColumn.Three);
+    } else {
+      await openPlaceholderInGroup("tables", vscode.ViewColumn.Three, taskName);
+    }
 
     if (preferredScript) {
       await setLastActiveUri(workspaceState, taskUri, "scripts", preferredScript);
