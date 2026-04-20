@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 
 import { createAnalysisDeleteExperimentCommand } from "./commands/deleteAnalysisExperiment";
+import { createAnalysisDeleteFileCommand } from "./commands/deleteAnalysisFile";
 import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExperiment";
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
@@ -90,6 +91,10 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.analysis.deleteExperiment",
     createAnalysisDeleteExperimentCommand(analysisTreeProvider)
   );
+  const analysisDeleteFileDisposable = vscode.commands.registerCommand(
+    "researchflow.analysis.deleteFile",
+    createAnalysisDeleteFileCommand(analysisTreeProvider)
+  );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
@@ -113,6 +118,7 @@ export function activate(context: vscode.ExtensionContext): void {
     analysisNewScriptDisposable,
     analysisNewExperimentDisposable,
     analysisDeleteExperimentDisposable,
+    analysisDeleteFileDisposable,
     analysisWatcher,
     analysisLastActiveTrackingDisposable,
     analysisWatcherCreateDisposable,

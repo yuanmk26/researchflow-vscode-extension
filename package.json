@@ -16,6 +16,7 @@
     "onCommand:researchflow.analysis.newScript",
     "onCommand:researchflow.analysis.newExperiment",
     "onCommand:researchflow.analysis.deleteExperiment",
+    "onCommand:researchflow.analysis.deleteFile",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -76,6 +77,11 @@
       {
         "command": "researchflow.analysis.deleteExperiment",
         "title": "ResearchFlow: Delete Analysis Experiment",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "researchflow.analysis.deleteFile",
+        "title": "ResearchFlow: Delete Analysis File",
         "icon": "$(trash)"
       }
     ],
@@ -174,6 +180,11 @@
         {
           "command": "researchflow.analysis.deleteExperiment",
           "when": "view == researchflow.analysis && viewItem == analysisTask",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.analysis.deleteFile",
+          "when": "view == researchflow.analysis && viewItem == analysisStoredFile",
           "group": "inline"
         },
         {
