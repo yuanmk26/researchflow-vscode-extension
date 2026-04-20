@@ -64,6 +64,10 @@ function resolveTaskUriFromTarget(target?: vscode.Uri | AnalysisTreeItem): vscod
     return target.uri;
   }
 
+  if (target.kind === "group" && target.taskUri && target.groupName === "scripts") {
+    return target.taskUri;
+  }
+
   return undefined;
 }
 

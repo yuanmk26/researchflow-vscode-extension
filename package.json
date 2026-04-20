@@ -174,7 +174,7 @@
         },
         {
           "command": "researchflow.analysis.newScript",
-          "when": "view == researchflow.analysis && viewItem == analysisTask",
+          "when": "view == researchflow.analysis && viewItem == analysisScriptsGroup",
           "group": "inline"
         },
         {

@@ -33,7 +33,11 @@ export class AnalysisTreeItem extends vscode.TreeItem {
           : kind === "file"
             ? "analysisStoredFile"
             : kind === "group"
-              ? "analysisGroup"
+              ? groupName === "scripts"
+                ? "analysisScriptsGroup"
+                : groupName === "figures"
+                  ? "analysisFiguresGroup"
+                  : "analysisTablesGroup"
               : "analysisInfo";
 
     if (kind === "task" && uri) {
