@@ -53,9 +53,29 @@ async function collectTaskFiles(taskUri: vscode.Uri): Promise<AnalysisTaskFiles>
 
 async function forceThreeGroupLayout(): Promise<void> {
   await vscode.commands.executeCommand("vscode.setEditorLayout", {
-    groups: [{}, { groups: [{}, {}], orientation: 0 }],
+    groups: [{}, { groups: [{}, {}] }],
     orientation: 0
   });
+}
+
+async function logEditorLayoutShape(): Promise<void> {
+  try {
+    const layout = (await vscode.commands.executeCommand("vscode.getEditorLayout")) as
+      | { groups?: unknown[]; orientation?: number }
+      | undefined;
+    const groups = Array.isArray(layout?.groups) ? layout.groups : [];
+    const rightGroup = groups[1] as { groups?: unknown[] } | undefined;
+    const rightChildren = Array.isArray(rightGroup?.groups) ? rightGroup.groups : [];
+    const isExpectedShape = layout?.orientation === 0 && groups.length === 2 && rightChildren.length === 2;
+
+    console.debug("[ResearchFlow][AnalysisLayout]", {
+      isExpectedShape,
+      layout
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.debug("[ResearchFlow][AnalysisLayout] Failed to inspect layout", message);
+  }
 }
 
 async function focusEditorSlot(slot: AnalysisEditorSlot): Promise<void> {
@@ -273,6 +293,7 @@ export function createOpenAnalysisTaskCommand(
     const preferredTable = getRememberedUri(workspaceState, taskUri, "tables", taskFiles.tables) ?? taskFiles.tables[0];
 
     await forceThreeGroupLayout();
+    await logEditorLayoutShape();
     await clearEditorsInSlot("first");
     await clearEditorsInSlot("second");
     await clearEditorsInSlot("third");
