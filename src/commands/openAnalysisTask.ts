@@ -297,6 +297,8 @@ export function createOpenAnalysisTaskCommand(
     await clearEditorsInSlot("first");
     await clearEditorsInSlot("second");
     await clearEditorsInSlot("third");
+    await forceThreeGroupLayout();
+    await logEditorLayoutShape();
 
     const taskName = taskUri.path.split("/").pop() ?? "unknown-task";
     const scriptsToOpen = rotatePreferredFirst(taskFiles.scripts, preferredScript);
