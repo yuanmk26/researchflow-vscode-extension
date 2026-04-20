@@ -15,6 +15,7 @@
     "onCommand:researchflow.analysis.openTask",
     "onCommand:researchflow.analysis.newScript",
     "onCommand:researchflow.analysis.newExperiment",
+    "onCommand:researchflow.analysis.deleteExperiment",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -71,6 +72,11 @@
         "command": "researchflow.analysis.newExperiment",
         "title": "ResearchFlow: Analysis New Experiment",
         "icon": "$(beaker)"
+      },
+      {
+        "command": "researchflow.analysis.deleteExperiment",
+        "title": "ResearchFlow: Delete Analysis Experiment",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
@@ -166,8 +172,13 @@
           "group": "inline"
         },
         {
+          "command": "researchflow.analysis.deleteExperiment",
+          "when": "view == researchflow.analysis && viewItem == analysisTask",
+          "group": "inline"
+        },
+        {
           "command": "researchflow.analysis.newExperiment",
-          "when": "view == researchflow.analysis",
+          "when": "view == researchflow.analysis && viewItem != analysisTask",
           "group": "navigation"
         }
       ]
