@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 
+import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExperiment";
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
 import { createInitProjectCommand } from "./commands/initProject";
@@ -80,6 +81,10 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.analysis.newScript",
     createAnalysisNewScriptCommand(analysisTreeProvider)
   );
+  const analysisNewExperimentDisposable = vscode.commands.registerCommand(
+    "researchflow.analysis.newExperiment",
+    createAnalysisNewExperimentCommand(analysisTreeProvider)
+  );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
   const analysisWatcherChangeDisposable = analysisWatcher.onDidChange(() => analysisTreeProvider.refresh());
@@ -100,6 +105,7 @@ export function activate(context: vscode.ExtensionContext): void {
     draftCaptionDisposable,
     openAnalysisTaskDisposable,
     analysisNewScriptDisposable,
+    analysisNewExperimentDisposable,
     analysisWatcher,
     analysisWatcherCreateDisposable,
     analysisWatcherChangeDisposable,

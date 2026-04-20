@@ -14,6 +14,7 @@
     "onCommand:researchflow.initProject",
     "onCommand:researchflow.analysis.openTask",
     "onCommand:researchflow.analysis.newScript",
+    "onCommand:researchflow.analysis.newExperiment",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -65,6 +66,11 @@
         "command": "researchflow.analysis.newScript",
         "title": "ResearchFlow: Analysis New Script",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "researchflow.analysis.newExperiment",
+        "title": "ResearchFlow: Analysis New Experiment",
+        "icon": "$(beaker)"
       }
     ],
     "viewsContainers": {
@@ -103,7 +109,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "researchflow.analysis.newScript",
+          "command": "researchflow.analysis.newExperiment",
           "when": "view == researchflow.analysis",
           "group": "navigation@1"
         }
@@ -158,6 +164,11 @@
           "command": "researchflow.analysis.newScript",
           "when": "view == researchflow.analysis && viewItem == analysisTask",
           "group": "inline"
+        },
+        {
+          "command": "researchflow.analysis.newExperiment",
+          "when": "view == researchflow.analysis",
+          "group": "navigation"
         }
       ]
     }
