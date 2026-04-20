@@ -51,9 +51,10 @@ async function collectTaskFiles(taskUri: vscode.Uri): Promise<AnalysisTaskFiles>
 }
 
 async function forceThreeGroupLayout(): Promise<void> {
-  await vscode.commands.executeCommand("workbench.action.editorLayoutTwoColumns");
-  await vscode.commands.executeCommand("workbench.action.focusSecondEditorGroup");
-  await vscode.commands.executeCommand("workbench.action.splitEditorDown");
+  await vscode.commands.executeCommand("vscode.setEditorLayout", {
+    groups: [{}, { groups: [{}, {}], orientation: 1 }],
+    orientation: 0
+  });
 }
 
 async function clearEditorsInColumn(viewColumn: vscode.ViewColumn): Promise<void> {
