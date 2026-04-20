@@ -12,6 +12,7 @@
   ],
   "activationEvents": [
     "onCommand:researchflow.initProject",
+    "onCommand:researchflow.analysis.openTask",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -55,14 +56,9 @@
         "icon": "$(sync)"
       },
       {
-        "command": "researchflow.analysis.newFile",
-        "title": "ResearchFlow: Analysis New File",
-        "icon": "$(new-file)"
-      },
-      {
-        "command": "researchflow.analysis.newFolder",
-        "title": "ResearchFlow: Analysis New Folder",
-        "icon": "$(new-folder)"
+        "command": "researchflow.analysis.openTask",
+        "title": "ResearchFlow: Open Analysis Task",
+        "icon": "$(preview)"
       }
     ],
     "viewsContainers": {
@@ -99,18 +95,6 @@
       ]
     },
     "menus": {
-      "view/title": [
-        {
-          "command": "researchflow.analysis.newFile",
-          "when": "view == researchflow.analysis",
-          "group": "navigation@1"
-        },
-        {
-          "command": "researchflow.analysis.newFolder",
-          "when": "view == researchflow.analysis",
-          "group": "navigation@2"
-        }
-      ],
       "view/item/context": [
         {
           "command": "researchflow.selectProjectFolder",
@@ -153,24 +137,9 @@
           "group": "navigation"
         },
         {
-          "command": "researchflow.analysis.newFile",
-          "when": "view == researchflow.analysis && viewItem == analysisDirectory",
+          "command": "researchflow.analysis.openTask",
+          "when": "view == researchflow.analysis && viewItem == analysisTask",
           "group": "inline"
-        },
-        {
-          "command": "researchflow.analysis.newFolder",
-          "when": "view == researchflow.analysis && viewItem == analysisDirectory",
-          "group": "inline"
-        },
-        {
-          "command": "researchflow.analysis.newFile",
-          "when": "view == researchflow.analysis && viewItem == analysisFile",
-          "group": "navigation"
-        },
-        {
-          "command": "researchflow.analysis.newFolder",
-          "when": "view == researchflow.analysis && viewItem == analysisFile",
-          "group": "navigation"
         }
       ]
     }

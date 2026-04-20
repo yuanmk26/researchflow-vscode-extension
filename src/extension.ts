@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 
-import { createAnalysisNewFileCommand, createAnalysisNewFolderCommand } from "./commands/analysisCreateEntry";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
 import { createInitProjectCommand } from "./commands/initProject";
+import { createOpenAnalysisTaskCommand } from "./commands/openAnalysisTask";
 import { createOpenProjectDirectoryCommand } from "./commands/openProjectDirectory";
 import { createRenameProjectCommand } from "./commands/renameProject";
 import { createRecommendCitationsCommand } from "./commands/recommendCitations";
@@ -71,13 +71,9 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.draftCaption",
     createDraftCaptionCommand(coreClient)
   );
-  const analysisNewFileDisposable = vscode.commands.registerCommand(
-    "researchflow.analysis.newFile",
-    createAnalysisNewFileCommand(analysisTreeProvider)
-  );
-  const analysisNewFolderDisposable = vscode.commands.registerCommand(
-    "researchflow.analysis.newFolder",
-    createAnalysisNewFolderCommand(analysisTreeProvider)
+  const openAnalysisTaskDisposable = vscode.commands.registerCommand(
+    "researchflow.analysis.openTask",
+    createOpenAnalysisTaskCommand()
   );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
@@ -97,8 +93,7 @@ export function activate(context: vscode.ExtensionContext): void {
     renameProjectDisposable,
     recommendCitationsDisposable,
     draftCaptionDisposable,
-    analysisNewFileDisposable,
-    analysisNewFolderDisposable,
+    openAnalysisTaskDisposable,
     analysisWatcher,
     analysisWatcherCreateDisposable,
     analysisWatcherChangeDisposable,
