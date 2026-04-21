@@ -8,6 +8,7 @@ import { createStorageDataFolderCommand } from "./commands/createStorageDataFold
 import { createDraftCaptionCommand } from "./commands/draftCaption";
 import { createStorageImportDataCommand } from "./commands/importStorageData";
 import { createInitProjectCommand } from "./commands/initProject";
+import { createMoveStorageDataCommand } from "./commands/moveStorageData";
 import { createOpenAnalysisTaskCommand, registerAnalysisTaskLastActiveTracking } from "./commands/openAnalysisTask";
 import { createOpenStorageDataInfoCommand } from "./commands/openStorageDataInfo";
 import { createOpenProjectDirectoryCommand } from "./commands/openProjectDirectory";
@@ -112,6 +113,10 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.storage.openDataInfo",
     createOpenStorageDataInfoCommand()
   );
+  const storageMoveDataDisposable = vscode.commands.registerCommand(
+    "researchflow.storage.moveData",
+    createMoveStorageDataCommand(storageTreeProvider)
+  );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
   const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
@@ -143,6 +148,7 @@ export function activate(context: vscode.ExtensionContext): void {
     storageImportDataDisposable,
     storageNewDataFolderDisposable,
     storageOpenDataInfoDisposable,
+    storageMoveDataDisposable,
     analysisWatcher,
     storageWatcher,
     analysisLastActiveTrackingDisposable,

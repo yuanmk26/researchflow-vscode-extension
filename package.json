@@ -20,6 +20,7 @@
     "onCommand:researchflow.storage.importData",
     "onCommand:researchflow.storage.newDataFolder",
     "onCommand:researchflow.storage.openDataInfo",
+    "onCommand:researchflow.storage.moveData",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -101,6 +102,11 @@
         "command": "researchflow.storage.openDataInfo",
         "title": "ResearchFlow: Open Data Info",
         "icon": "$(preview)"
+      },
+      {
+        "command": "researchflow.storage.moveData",
+        "title": "ResearchFlow: Move Data File",
+        "icon": "$(arrow-swap)"
       }
     ],
     "viewsContainers": {
@@ -219,6 +225,11 @@
           "command": "researchflow.storage.newDataFolder",
           "when": "view == researchflow.storage && viewItem == storageDataGroup",
           "group": "inline"
+        },
+        {
+          "command": "researchflow.storage.moveData",
+          "when": "view == researchflow.storage && viewItem == storageDataFile",
+          "group": "navigation"
         }
       ]
     }
