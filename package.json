@@ -17,6 +17,8 @@
     "onCommand:researchflow.analysis.newExperiment",
     "onCommand:researchflow.analysis.deleteExperiment",
     "onCommand:researchflow.analysis.deleteFile",
+    "onCommand:researchflow.storage.importData",
+    "onCommand:researchflow.storage.openDataInfo",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -83,6 +85,16 @@
         "command": "researchflow.analysis.deleteFile",
         "title": "ResearchFlow: Delete Analysis File",
         "icon": "$(trash)"
+      },
+      {
+        "command": "researchflow.storage.importData",
+        "title": "ResearchFlow: Storage Import Data",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "researchflow.storage.openDataInfo",
+        "title": "ResearchFlow: Open Data Info",
+        "icon": "$(preview)"
       }
     ],
     "viewsContainers": {
@@ -191,6 +203,11 @@
           "command": "researchflow.analysis.newExperiment",
           "when": "view == researchflow.analysis && viewItem == analysisNewExperimentAction",
           "group": "navigation"
+        },
+        {
+          "command": "researchflow.storage.importData",
+          "when": "view == researchflow.storage && viewItem == storageDataGroup",
+          "group": "inline"
         }
       ]
     }

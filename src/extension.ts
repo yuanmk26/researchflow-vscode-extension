@@ -5,8 +5,10 @@ import { createAnalysisDeleteFileCommand } from "./commands/deleteAnalysisFile";
 import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExperiment";
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
+import { createStorageImportDataCommand } from "./commands/importStorageData";
 import { createInitProjectCommand } from "./commands/initProject";
 import { createOpenAnalysisTaskCommand, registerAnalysisTaskLastActiveTracking } from "./commands/openAnalysisTask";
+import { createOpenStorageDataInfoCommand } from "./commands/openStorageDataInfo";
 import { createOpenProjectDirectoryCommand } from "./commands/openProjectDirectory";
 import { createRenameProjectCommand } from "./commands/renameProject";
 import { createRecommendCitationsCommand } from "./commands/recommendCitations";
@@ -26,7 +28,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const referencesTreeProvider = new ReferencesTreeProvider();
   const analysisTreeProvider = new AnalysisTreeProvider(projectManager);
   const writingTreeProvider = new WritingTreeProvider();
-  const storageTreeProvider = new StorageTreeProvider();
+  const storageTreeProvider = new StorageTreeProvider(projectManager);
 
   const projectsTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.projects", projectTreeProvider);
   const referencesTreeDisposable = vscode.window.registerTreeDataProvider(
@@ -42,6 +44,7 @@ export function activate(context: vscode.ExtensionContext): void {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
       analysisTreeProvider.refresh();
+      storageTreeProvider.refresh();
     }
   );
   const reinitializeProjectDisposable = vscode.commands.registerCommand(
@@ -50,6 +53,7 @@ export function activate(context: vscode.ExtensionContext): void {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
       analysisTreeProvider.refresh();
+      storageTreeProvider.refresh();
     }
   );
   const openProjectDirectoryDisposable = vscode.commands.registerCommand(
@@ -95,11 +99,23 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.analysis.deleteFile",
     createAnalysisDeleteFileCommand(analysisTreeProvider)
   );
+  const storageImportDataDisposable = vscode.commands.registerCommand(
+    "researchflow.storage.importData",
+    createStorageImportDataCommand(storageTreeProvider)
+  );
+  const storageOpenDataInfoDisposable = vscode.commands.registerCommand(
+    "researchflow.storage.openDataInfo",
+    createOpenStorageDataInfoCommand()
+  );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
+  const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Storage/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
   const analysisWatcherChangeDisposable = analysisWatcher.onDidChange(() => analysisTreeProvider.refresh());
   const analysisWatcherDeleteDisposable = analysisWatcher.onDidDelete(() => analysisTreeProvider.refresh());
+  const storageWatcherCreateDisposable = storageWatcher.onDidCreate(() => storageTreeProvider.refresh());
+  const storageWatcherChangeDisposable = storageWatcher.onDidChange(() => storageTreeProvider.refresh());
+  const storageWatcherDeleteDisposable = storageWatcher.onDidDelete(() => storageTreeProvider.refresh());
 
   context.subscriptions.push(
     projectsTreeDisposable,
@@ -119,11 +135,17 @@ export function activate(context: vscode.ExtensionContext): void {
     analysisNewExperimentDisposable,
     analysisDeleteExperimentDisposable,
     analysisDeleteFileDisposable,
+    storageImportDataDisposable,
+    storageOpenDataInfoDisposable,
     analysisWatcher,
+    storageWatcher,
     analysisLastActiveTrackingDisposable,
     analysisWatcherCreateDisposable,
     analysisWatcherChangeDisposable,
-    analysisWatcherDeleteDisposable
+    analysisWatcherDeleteDisposable,
+    storageWatcherCreateDisposable,
+    storageWatcherChangeDisposable,
+    storageWatcherDeleteDisposable
   );
 }
 
