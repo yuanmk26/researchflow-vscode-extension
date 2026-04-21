@@ -18,7 +18,7 @@ export function createStorageImportDataCommand(
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: true,
-      openLabel: "Import to Storage/Data"
+      openLabel: "Import to Data"
     });
 
     if (!pickedFiles || pickedFiles.length === 0) {
@@ -35,7 +35,7 @@ export function createStorageImportDataCommand(
       try {
         await vscode.workspace.fs.stat(targetUri);
         const decision = await vscode.window.showWarningMessage(
-          `Data file "${fileName}" already exists in Storage/Data.`,
+          `Data file "${fileName}" already exists in Data.`,
           { modal: true },
           "Overwrite",
           "Skip",

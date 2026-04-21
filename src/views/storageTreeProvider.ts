@@ -105,18 +105,18 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
     }
 
     const projectRootUri = vscode.Uri.file(directoryInfo.path);
-    const dataRootUri = vscode.Uri.joinPath(projectRootUri, "Storage", "Data");
+    const dataRootUri = vscode.Uri.joinPath(projectRootUri, "Data");
 
     try {
       const stat = await vscode.workspace.fs.stat(dataRootUri);
       if ((stat.type & vscode.FileType.Directory) === 0) {
         return {
-          message: 'Storage path is invalid. Expected directory at "Storage/Data".'
+          message: 'Data path is invalid. Expected directory at "Data".'
         };
       }
     } catch {
       return {
-        message: 'Missing "Storage/Data" directory. Use "Import Data" to create it automatically.'
+        message: 'Missing "Data" directory. Use "Import Data" to create it automatically.'
       };
     }
 
@@ -137,7 +137,7 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
       };
     }
 
-    const dataRootUri = vscode.Uri.joinPath(vscode.Uri.file(directoryInfo.path), "Storage", "Data");
+    const dataRootUri = vscode.Uri.joinPath(vscode.Uri.file(directoryInfo.path), "Data");
     try {
       await vscode.workspace.fs.createDirectory(dataRootUri);
       await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(dataRootUri, ".meta"));
@@ -165,7 +165,7 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
     });
 
     if (visibleFiles.length === 0) {
-      return [new StorageTreeItem("No data files in Storage/Data", "info", vscode.TreeItemCollapsibleState.None)];
+      return [new StorageTreeItem("No data files in Data", "info", vscode.TreeItemCollapsibleState.None)];
     }
 
     return visibleFiles.map((fileUri) => {

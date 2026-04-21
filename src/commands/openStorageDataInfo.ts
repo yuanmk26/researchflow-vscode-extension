@@ -20,10 +20,18 @@ function resolveDataFileUri(target?: vscode.Uri | StorageTreeItem): vscode.Uri |
 }
 
 async function closeAllEditorTabs(): Promise<void> {
+  const allTabs: vscode.Tab[] = [];
   for (const group of vscode.window.tabGroups.all) {
-    if (group.tabs.length > 0) {
-      await vscode.window.tabGroups.close([...group.tabs], true);
-    }
+    allTabs.push(...group.tabs);
+  }
+
+  if (allTabs.length === 0) {
+    return;
+  }
+
+  const closed = await vscode.window.tabGroups.close(allTabs, false);
+  if (!closed) {
+    throw new Error("tab-close-cancelled");
   }
 }
 
@@ -36,10 +44,7 @@ function findStorageDataRoot(fileUri: vscode.Uri): vscode.Uri {
       return vscode.Uri.file(path.dirname(fileUri.fsPath));
     }
 
-    if (
-      path.basename(currentPath).toLowerCase() === "data" &&
-      path.basename(parentPath).toLowerCase() === "storage"
-    ) {
+    if (path.basename(currentPath).toLowerCase() === "data") {
       return vscode.Uri.file(currentPath);
     }
 
@@ -85,6 +90,18 @@ export function createOpenStorageDataInfoCommand(): (target?: vscode.Uri | Stora
       return;
     }
 
+    try {
+      await closeAllEditorTabs();
+    } catch (error) {
+      if (error instanceof Error && error.message === "tab-close-cancelled") {
+        return;
+      }
+
+      const message = error instanceof Error ? error.message : "Unknown error";
+      void vscode.window.showErrorMessage(`Failed to close editors: ${message}`);
+      return;
+    }
+
     const dataRootUri = findStorageDataRoot(dataUri);
     const metaDir = vscode.Uri.joinPath(dataRootUri, ".meta");
     const sidecarUri = vscode.Uri.joinPath(metaDir, `${fileName}.rfdata.md`);
@@ -99,7 +116,6 @@ export function createOpenStorageDataInfoCommand(): (target?: vscode.Uri | Stora
       return;
     }
 
-    await closeAllEditorTabs();
     await vscode.window.showTextDocument(sidecarUri, {
       preview: false,
       preserveFocus: false,

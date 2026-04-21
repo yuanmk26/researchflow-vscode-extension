@@ -108,7 +108,7 @@ export function activate(context: vscode.ExtensionContext): void {
     createOpenStorageDataInfoCommand()
   );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
-  const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Storage/**");
+  const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
   const analysisWatcherChangeDisposable = analysisWatcher.onDidChange(() => analysisTreeProvider.refresh());
