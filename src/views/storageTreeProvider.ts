@@ -7,6 +7,7 @@ export type StorageTreeItemKind = "group" | "file" | "info";
 export type StorageGroupName = "figure" | "table" | "data";
 
 type StorageDataEntryKind = "directory" | "file";
+const STORAGE_TREE_DND_MIME = "application/vnd.code.tree.researchflow.storage";
 
 export class StorageTreeItem extends vscode.TreeItem {
   public readonly kind: StorageTreeItemKind;
@@ -225,5 +226,162 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
     } catch {
       return [];
     }
+  }
+}
+
+function isWithinDirectory(rootPath: string, candidatePath: string): boolean {
+  const relative = path.relative(rootPath, candidatePath);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function buildDataInfoMarkdown(dataUri: vscode.Uri, stat: vscode.FileStat): string {
+  const fileName = path.basename(dataUri.fsPath);
+  const modified = new Date(stat.mtime).toISOString();
+
+  return `# Data File Info
+
+- Name: \`${fileName}\`
+- Absolute path: \`${dataUri.fsPath}\`
+- Size: \`${stat.size} B\`
+- Last modified: \`${modified}\`
+`;
+}
+
+async function updateDataSidecar(dataFileUri: vscode.Uri, dataRootUri: vscode.Uri): Promise<void> {
+  const stat = await vscode.workspace.fs.stat(dataFileUri);
+  const metaDir = vscode.Uri.joinPath(dataRootUri, ".meta");
+  const sidecarUri = vscode.Uri.joinPath(metaDir, `${path.basename(dataFileUri.fsPath)}.rfdata.md`);
+  await vscode.workspace.fs.createDirectory(metaDir);
+  await vscode.workspace.fs.writeFile(sidecarUri, new TextEncoder().encode(buildDataInfoMarkdown(dataFileUri, stat)));
+}
+
+export class StorageTreeDragAndDropController implements vscode.TreeDragAndDropController<StorageTreeItem> {
+  public readonly dragMimeTypes = [STORAGE_TREE_DND_MIME];
+  public readonly dropMimeTypes = [STORAGE_TREE_DND_MIME];
+
+  public constructor(private readonly storageTreeProvider: StorageTreeProvider) {}
+
+  public async handleDrag(source: readonly StorageTreeItem[], dataTransfer: vscode.DataTransfer): Promise<void> {
+    const draggableUris = source
+      .filter((item) => item.kind === "file" && item.groupName === "data" && item.dataEntryKind === "file" && item.uri)
+      .map((item) => item.uri as vscode.Uri);
+
+    if (draggableUris.length === 0) {
+      return;
+    }
+
+    dataTransfer.set(STORAGE_TREE_DND_MIME, new vscode.DataTransferItem(JSON.stringify(draggableUris.map((uri) => uri.toString()))));
+  }
+
+  public async handleDrop(target: StorageTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
+    const dataRootResult = await this.storageTreeProvider.getStorageDataRootUri();
+    if (!dataRootResult.uri) {
+      void vscode.window.showWarningMessage(dataRootResult.message);
+      return;
+    }
+
+    const destinationFolderUri = await this.resolveDestinationFolder(target, dataRootResult.uri);
+    if (!destinationFolderUri) {
+      return;
+    }
+
+    if (!isWithinDirectory(dataRootResult.uri.fsPath, destinationFolderUri.fsPath)) {
+      void vscode.window.showWarningMessage('Destination must be inside the project "Data" directory.');
+      return;
+    }
+
+    const dataItem = dataTransfer.get(STORAGE_TREE_DND_MIME);
+    if (!dataItem) {
+      return;
+    }
+
+    const sourceUris = this.parseSourceUris(dataItem);
+    if (sourceUris.length === 0) {
+      return;
+    }
+
+    let movedCount = 0;
+    for (const sourceUri of sourceUris) {
+      const fileName = path.basename(sourceUri.fsPath);
+      const destinationUri = vscode.Uri.joinPath(destinationFolderUri, fileName);
+      if (destinationUri.toString() === sourceUri.toString()) {
+        continue;
+      }
+
+      let overwrite = false;
+      try {
+        await vscode.workspace.fs.stat(destinationUri);
+        const decision = await vscode.window.showWarningMessage(
+          `A file named "${fileName}" already exists in the destination folder.`,
+          { modal: true },
+          "Overwrite",
+          "Skip",
+          "Cancel Move"
+        );
+
+        if (decision === "Cancel Move") {
+          break;
+        }
+
+        if (decision !== "Overwrite") {
+          continue;
+        }
+
+        overwrite = true;
+      } catch {
+        // Destination file does not exist.
+      }
+
+      try {
+        await vscode.workspace.fs.rename(sourceUri, destinationUri, { overwrite });
+        await updateDataSidecar(destinationUri, dataRootResult.uri);
+        movedCount += 1;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        void vscode.window.showErrorMessage(`Failed to move data file "${fileName}": ${message}`);
+      }
+    }
+
+    if (movedCount > 0) {
+      this.storageTreeProvider.refresh();
+      void vscode.window.showInformationMessage(`Moved ${movedCount} data file(s).`);
+    }
+  }
+
+  private async resolveDestinationFolder(
+    target: StorageTreeItem | undefined,
+    dataRootUri: vscode.Uri
+  ): Promise<vscode.Uri | undefined> {
+    if (!target) {
+      return dataRootUri;
+    }
+
+    if (target.kind === "group" && target.groupName === "data") {
+      return dataRootUri;
+    }
+
+    if (target.kind === "file" && target.groupName === "data" && target.dataEntryKind === "directory" && target.uri) {
+      return target.uri;
+    }
+
+    return undefined;
+  }
+
+  private parseSourceUris(item: vscode.DataTransferItem): vscode.Uri[] {
+    if (typeof item.value === "string") {
+      try {
+        const parsed = JSON.parse(item.value) as string[];
+        return parsed.map((raw) => vscode.Uri.parse(raw));
+      } catch {
+        return [];
+      }
+    }
+
+    if (Array.isArray(item.value)) {
+      const candidates = item.value as unknown[];
+      return candidates.filter((value): value is vscode.Uri => value instanceof vscode.Uri);
+    }
+
+    return [];
   }
 }

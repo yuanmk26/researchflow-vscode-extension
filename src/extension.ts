@@ -20,7 +20,7 @@ import { ProjectManager } from "./state/projectManager";
 import { AnalysisTreeProvider } from "./views/analysisTreeProvider";
 import { ProjectTreeProvider } from "./views/projectTreeProvider";
 import { ReferencesTreeProvider } from "./views/referencesTreeProvider";
-import { StorageTreeProvider } from "./views/storageTreeProvider";
+import { StorageTreeDragAndDropController, StorageTreeProvider } from "./views/storageTreeProvider";
 import { WritingTreeProvider } from "./views/writingTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -31,6 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const analysisTreeProvider = new AnalysisTreeProvider(projectManager);
   const writingTreeProvider = new WritingTreeProvider();
   const storageTreeProvider = new StorageTreeProvider(projectManager);
+  const storageTreeDndController = new StorageTreeDragAndDropController(storageTreeProvider);
 
   const projectsTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.projects", projectTreeProvider);
   const referencesTreeDisposable = vscode.window.registerTreeDataProvider(
@@ -39,7 +40,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const analysisTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.analysis", analysisTreeProvider);
   const writingTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.writing", writingTreeProvider);
-  const storageTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.storage", storageTreeProvider);
+  const storageTreeView = vscode.window.createTreeView("researchflow.storage", {
+    treeDataProvider: storageTreeProvider,
+    dragAndDropController: storageTreeDndController
+  });
   const initProjectDisposable = vscode.commands.registerCommand(
     "researchflow.initProject",
     async (): Promise<void> => {
@@ -132,7 +136,7 @@ export function activate(context: vscode.ExtensionContext): void {
     referencesTreeDisposable,
     analysisTreeDisposable,
     writingTreeDisposable,
-    storageTreeDisposable,
+    storageTreeView,
     initProjectDisposable,
     reinitializeProjectDisposable,
     openProjectDirectoryDisposable,
