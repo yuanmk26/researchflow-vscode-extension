@@ -19,6 +19,28 @@ function resolveDataFileUri(target?: vscode.Uri | StorageTreeItem): vscode.Uri |
   return undefined;
 }
 
+function resolveDataFileUris(items: readonly (vscode.Uri | StorageTreeItem)[]): vscode.Uri[] {
+  const seen = new Set<string>();
+  const uris: vscode.Uri[] = [];
+
+  for (const item of items) {
+    const uri = resolveDataFileUri(item);
+    if (!uri) {
+      continue;
+    }
+
+    const key = uri.toString();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    uris.push(uri);
+  }
+
+  return uris;
+}
+
 function findDataRoot(fileUri: vscode.Uri): vscode.Uri {
   let currentPath = path.dirname(fileUri.fsPath);
 
@@ -65,11 +87,18 @@ async function writeSidecarForDataFile(dataFileUri: vscode.Uri): Promise<void> {
 }
 
 export function createMoveStorageDataCommand(
-  storageTreeProvider: StorageTreeProvider
+  storageTreeProvider: StorageTreeProvider,
+  getSelection: () => readonly StorageTreeItem[]
 ): (target?: vscode.Uri | StorageTreeItem) => Promise<void> {
   return async (target?: vscode.Uri | StorageTreeItem): Promise<void> => {
-    const sourceUri = resolveDataFileUri(target);
-    if (!sourceUri) {
+    const selectedItems = getSelection();
+    const includesTarget = selectedItems.some((item) => item.uri?.toString() === resolveDataFileUri(target)?.toString());
+    const sourceUris =
+      includesTarget && selectedItems.length > 1
+        ? resolveDataFileUris(selectedItems)
+        : resolveDataFileUris(target ? [target] : []);
+
+    if (sourceUris.length === 0) {
       void vscode.window.showWarningMessage("No data file selected.");
       return;
     }
@@ -80,9 +109,10 @@ export function createMoveStorageDataCommand(
       return;
     }
 
-    const fileName = path.basename(sourceUri.fsPath);
+    const fileName = path.basename(sourceUris[0].fsPath);
+    const titlePrefix = sourceUris.length === 1 ? fileName : `${sourceUris.length} data files`;
     const selectedFolder = await vscode.window.showOpenDialog({
-      title: `Select destination folder for ${fileName}`,
+      title: `Select destination folder for ${titlePrefix}`,
       canSelectFiles: false,
       canSelectFolders: true,
       canSelectMany: false,
@@ -100,38 +130,50 @@ export function createMoveStorageDataCommand(
       return;
     }
 
-    const targetUri = vscode.Uri.joinPath(destinationFolderUri, fileName);
-    if (targetUri.toString() === sourceUri.toString()) {
-      void vscode.window.showInformationMessage("Selected destination is the same as current location.");
-      return;
-    }
-
-    let overwrite = false;
-    try {
-      await vscode.workspace.fs.stat(targetUri);
-      const decision = await vscode.window.showWarningMessage(
-        `A file named "${fileName}" already exists in the destination folder.`,
-        { modal: true },
-        "Overwrite",
-        "Cancel"
-      );
-      if (decision !== "Overwrite") {
-        return;
+    let movedCount = 0;
+    for (const sourceUri of sourceUris) {
+      const sourceFileName = path.basename(sourceUri.fsPath);
+      const targetUri = vscode.Uri.joinPath(destinationFolderUri, sourceFileName);
+      if (targetUri.toString() === sourceUri.toString()) {
+        continue;
       }
 
-      overwrite = true;
-    } catch {
-      // Destination file does not exist.
+      let overwrite = false;
+      try {
+        await vscode.workspace.fs.stat(targetUri);
+        const decision = await vscode.window.showWarningMessage(
+          `A file named "${sourceFileName}" already exists in the destination folder.`,
+          { modal: true },
+          "Overwrite",
+          "Skip",
+          "Cancel Move"
+        );
+        if (decision === "Cancel Move") {
+          break;
+        }
+
+        if (decision !== "Overwrite") {
+          continue;
+        }
+
+        overwrite = true;
+      } catch {
+        // Destination file does not exist.
+      }
+
+      try {
+        await vscode.workspace.fs.rename(sourceUri, targetUri, { overwrite });
+        await writeSidecarForDataFile(targetUri);
+        movedCount += 1;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        void vscode.window.showErrorMessage(`Failed to move data file "${sourceFileName}": ${message}`);
+      }
     }
 
-    try {
-      await vscode.workspace.fs.rename(sourceUri, targetUri, { overwrite });
-      await writeSidecarForDataFile(targetUri);
-      storageTreeProvider.refresh();
-      void vscode.window.showInformationMessage(`Moved "${fileName}" successfully.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      void vscode.window.showErrorMessage(`Failed to move data file: ${message}`);
+    storageTreeProvider.refresh();
+    if (movedCount > 0) {
+      void vscode.window.showInformationMessage(`Moved ${movedCount} data file(s) successfully.`);
     }
   };
 }

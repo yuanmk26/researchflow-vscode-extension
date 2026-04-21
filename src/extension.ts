@@ -42,7 +42,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const writingTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.writing", writingTreeProvider);
   const storageTreeView = vscode.window.createTreeView("researchflow.storage", {
     treeDataProvider: storageTreeProvider,
-    dragAndDropController: storageTreeDndController
+    dragAndDropController: storageTreeDndController,
+    canSelectMany: true
   });
   const initProjectDisposable = vscode.commands.registerCommand(
     "researchflow.initProject",
@@ -119,7 +120,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const storageMoveDataDisposable = vscode.commands.registerCommand(
     "researchflow.storage.moveData",
-    createMoveStorageDataCommand(storageTreeProvider)
+    createMoveStorageDataCommand(storageTreeProvider, () => storageTreeView.selection)
   );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
   const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
