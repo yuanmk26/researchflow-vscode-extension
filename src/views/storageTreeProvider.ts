@@ -6,22 +6,27 @@ import { ProjectManager } from "../state/projectManager";
 export type StorageTreeItemKind = "group" | "file" | "info";
 export type StorageGroupName = "figure" | "table" | "data";
 
+type StorageDataEntryKind = "directory" | "file";
+
 export class StorageTreeItem extends vscode.TreeItem {
   public readonly kind: StorageTreeItemKind;
   public readonly uri?: vscode.Uri;
   public readonly groupName?: StorageGroupName;
+  public readonly dataEntryKind?: StorageDataEntryKind;
 
   public constructor(
     label: string,
     kind: StorageTreeItemKind,
     collapsibleState: vscode.TreeItemCollapsibleState,
     uri?: vscode.Uri,
-    groupName?: StorageGroupName
+    groupName?: StorageGroupName,
+    dataEntryKind?: StorageDataEntryKind
   ) {
     super(label, collapsibleState);
     this.kind = kind;
     this.uri = uri;
     this.groupName = groupName;
+    this.dataEntryKind = dataEntryKind;
 
     if (kind === "group" && groupName) {
       this.id = `storage-group:${groupName}`;
@@ -30,7 +35,7 @@ export class StorageTreeItem extends vscode.TreeItem {
         groupName === "data" ? "storageDataGroup" : groupName === "figure" ? "storageFigureGroup" : "storageTableGroup";
     }
 
-    if (kind === "file" && uri) {
+    if (kind === "file" && uri && dataEntryKind === "file") {
       this.id = uri.toString();
       this.resourceUri = uri;
       this.iconPath = new vscode.ThemeIcon("file");
@@ -40,6 +45,13 @@ export class StorageTreeItem extends vscode.TreeItem {
         title: "Open Data Info",
         arguments: [uri]
       };
+    }
+
+    if (kind === "file" && uri && dataEntryKind === "directory") {
+      this.id = uri.toString();
+      this.resourceUri = uri;
+      this.iconPath = new vscode.ThemeIcon("folder");
+      this.contextValue = "storageDataDirectory";
     }
 
     if (kind === "info") {
@@ -75,6 +87,10 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
       ]);
     }
 
+    if (element.kind === "file" && element.dataEntryKind === "directory" && element.uri) {
+      return this.buildDataEntriesForDirectory(element.uri);
+    }
+
     if (element.kind !== "group" || !element.groupName) {
       return Promise.resolve([]);
     }
@@ -87,7 +103,7 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
       return Promise.resolve([new StorageTreeItem("Table storage will be added next", "info", vscode.TreeItemCollapsibleState.None)]);
     }
 
-    return this.buildDataFileItems();
+    return this.buildDataRootItems();
   }
 
   public async getStorageDataRootUri(): Promise<{ uri?: vscode.Uri; message: string }> {
@@ -148,54 +164,66 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
     }
   }
 
-  private async buildDataFileItems(): Promise<StorageTreeItem[]> {
+  private async buildDataRootItems(): Promise<StorageTreeItem[]> {
     const dataRootResult = await this.getStorageDataRootUri();
     if (!dataRootResult.uri) {
       return [new StorageTreeItem(dataRootResult.message, "info", vscode.TreeItemCollapsibleState.None)];
     }
 
-    const files = await this.readFilesRecursively(dataRootResult.uri);
-    const visibleFiles = files.filter((fileUri) => {
-      const relativePath = path.relative(dataRootResult.uri?.fsPath ?? "", fileUri.fsPath).replace(/\\/g, "/");
-      if (!relativePath || relativePath.startsWith(".meta/")) {
+    const items = await this.buildDataEntriesForDirectory(dataRootResult.uri);
+    if (items.length > 0) {
+      return items;
+    }
+
+    return [new StorageTreeItem("No data files in Data", "info", vscode.TreeItemCollapsibleState.None)];
+  }
+
+  private async buildDataEntriesForDirectory(directoryUri: vscode.Uri): Promise<StorageTreeItem[]> {
+    const entries = await this.readDirectorySafe(directoryUri);
+    const filteredEntries = entries.filter(([name, type]) => {
+      if (name === ".meta") {
         return false;
       }
 
-      return !relativePath.endsWith(".rfdata.md");
+      if ((type & vscode.FileType.File) !== 0 && name.endsWith(".rfdata.md")) {
+        return false;
+      }
+
+      return true;
     });
 
-    if (visibleFiles.length === 0) {
-      return [new StorageTreeItem("No data files in Data", "info", vscode.TreeItemCollapsibleState.None)];
-    }
+    const sortedEntries = filteredEntries.sort((a, b) => {
+      const aIsDir = (a[1] & vscode.FileType.Directory) !== 0;
+      const bIsDir = (b[1] & vscode.FileType.Directory) !== 0;
+      if (aIsDir !== bIsDir) {
+        return aIsDir ? -1 : 1;
+      }
 
-    return visibleFiles.map((fileUri) => {
-      const relativePath = path.relative(dataRootResult.uri?.fsPath ?? "", fileUri.fsPath).replace(/\\/g, "/");
-      return new StorageTreeItem(relativePath, "file", vscode.TreeItemCollapsibleState.None, fileUri, "data");
+      return a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+    });
+
+    return sortedEntries.map(([name, type]) => {
+      const entryUri = vscode.Uri.joinPath(directoryUri, name);
+      if ((type & vscode.FileType.Directory) !== 0) {
+        return new StorageTreeItem(
+          name,
+          "file",
+          vscode.TreeItemCollapsibleState.Collapsed,
+          entryUri,
+          "data",
+          "directory"
+        );
+      }
+
+      return new StorageTreeItem(name, "file", vscode.TreeItemCollapsibleState.None, entryUri, "data", "file");
     });
   }
 
-  private async readFilesRecursively(folderUri: vscode.Uri): Promise<vscode.Uri[]> {
-    const files: vscode.Uri[] = [];
-
-    const walk = async (current: vscode.Uri): Promise<void> => {
-      const entries = await vscode.workspace.fs.readDirectory(current);
-      const sortedEntries = entries.sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: "base" }));
-      for (const [name, type] of sortedEntries) {
-        const uri = vscode.Uri.joinPath(current, name);
-        if ((type & vscode.FileType.Directory) !== 0) {
-          await walk(uri);
-        } else if ((type & vscode.FileType.File) !== 0) {
-          files.push(uri);
-        }
-      }
-    };
-
+  private async readDirectorySafe(directoryUri: vscode.Uri): Promise<[string, vscode.FileType][]> {
     try {
-      await walk(folderUri);
+      return await vscode.workspace.fs.readDirectory(directoryUri);
     } catch {
       return [];
     }
-
-    return files;
   }
 }
