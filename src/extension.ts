@@ -4,6 +4,7 @@ import { createAnalysisDeleteExperimentCommand } from "./commands/deleteAnalysis
 import { createAnalysisDeleteFileCommand } from "./commands/deleteAnalysisFile";
 import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExperiment";
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
+import { createStorageDataFolderCommand } from "./commands/createStorageDataFolder";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
 import { createStorageImportDataCommand } from "./commands/importStorageData";
 import { createInitProjectCommand } from "./commands/initProject";
@@ -103,6 +104,10 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.storage.importData",
     createStorageImportDataCommand(storageTreeProvider)
   );
+  const storageNewDataFolderDisposable = vscode.commands.registerCommand(
+    "researchflow.storage.newDataFolder",
+    createStorageDataFolderCommand(storageTreeProvider)
+  );
   const storageOpenDataInfoDisposable = vscode.commands.registerCommand(
     "researchflow.storage.openDataInfo",
     createOpenStorageDataInfoCommand()
@@ -136,6 +141,7 @@ export function activate(context: vscode.ExtensionContext): void {
     analysisDeleteExperimentDisposable,
     analysisDeleteFileDisposable,
     storageImportDataDisposable,
+    storageNewDataFolderDisposable,
     storageOpenDataInfoDisposable,
     analysisWatcher,
     storageWatcher,

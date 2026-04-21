@@ -18,6 +18,7 @@
     "onCommand:researchflow.analysis.deleteExperiment",
     "onCommand:researchflow.analysis.deleteFile",
     "onCommand:researchflow.storage.importData",
+    "onCommand:researchflow.storage.newDataFolder",
     "onCommand:researchflow.storage.openDataInfo",
     "onView:researchflow.projects",
     "onView:researchflow.references",
@@ -90,6 +91,11 @@
         "command": "researchflow.storage.importData",
         "title": "ResearchFlow: Storage Import Data",
         "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "researchflow.storage.newDataFolder",
+        "title": "ResearchFlow: Storage New Data Folder",
+        "icon": "$(new-folder)"
       },
       {
         "command": "researchflow.storage.openDataInfo",
@@ -206,6 +212,11 @@
         },
         {
           "command": "researchflow.storage.importData",
+          "when": "view == researchflow.storage && viewItem == storageDataGroup",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.storage.newDataFolder",
           "when": "view == researchflow.storage && viewItem == storageDataGroup",
           "group": "inline"
         }
