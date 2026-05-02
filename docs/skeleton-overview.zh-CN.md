@@ -10,7 +10,7 @@ ResearchFlow Extension 目前是一个轻量入口层，主要负责：
 - 将请求转发给本地后端 `ResearchFlow Core`
 - 管理最小项目状态（`.researchflow/project.json`）
 
-当前版本不包含业务 AI 逻辑，不使用 Webview。
+当前版本不包含业务 AI 逻辑。除 ResearchFlow Chat 外，主体导航仍使用 Tree View；Chat 使用 Webview View，可由用户拖到 VS Code Secondary Sidebar 形成右侧聊天栏。
 
 ## 2. 目录与职责
 

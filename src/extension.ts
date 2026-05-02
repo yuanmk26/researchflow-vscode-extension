@@ -17,22 +17,29 @@ import { createRenameProjectCommand } from "./commands/renameProject";
 import { createRecommendCitationsCommand } from "./commands/recommendCitations";
 import { createSelectProjectFolderCommand } from "./commands/selectProjectFolder";
 import { CoreClient } from "./services/coreClient";
+import { ResearchFlowAgentService } from "./services/researchFlowAgentService";
 import { ProjectManager } from "./state/projectManager";
 import { AnalysisTreeProvider } from "./views/analysisTreeProvider";
 import { ProjectTreeProvider } from "./views/projectTreeProvider";
 import { ReferencesTreeProvider } from "./views/referencesTreeProvider";
+import { ResearchFlowChatViewProvider } from "./views/researchFlowChatViewProvider";
 import { StorageTreeDragAndDropController, StorageTreeProvider } from "./views/storageTreeProvider";
 import { WritingTreeProvider } from "./views/writingTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
   const projectManager = new ProjectManager();
   const coreClient = new CoreClient();
+  const researchFlowAgentService = new ResearchFlowAgentService();
   const projectTreeProvider = new ProjectTreeProvider(projectManager);
   const referencesTreeProvider = new ReferencesTreeProvider();
   const analysisTreeProvider = new AnalysisTreeProvider(projectManager);
   const writingTreeProvider = new WritingTreeProvider();
   const storageTreeProvider = new StorageTreeProvider(projectManager);
   const storageTreeDndController = new StorageTreeDragAndDropController(storageTreeProvider);
+  const researchFlowChatViewProvider = new ResearchFlowChatViewProvider(
+    context.extensionUri,
+    researchFlowAgentService
+  );
 
   const projectsTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.projects", projectTreeProvider);
   const referencesTreeDisposable = vscode.window.registerTreeDataProvider(
@@ -41,6 +48,11 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const analysisTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.analysis", analysisTreeProvider);
   const writingTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.writing", writingTreeProvider);
+  const chatViewDisposable = vscode.window.registerWebviewViewProvider(
+    ResearchFlowChatViewProvider.viewType,
+    researchFlowChatViewProvider,
+    { webviewOptions: { retainContextWhenHidden: true } }
+  );
   const storageTreeView = vscode.window.createTreeView("researchflow.storage", {
     treeDataProvider: storageTreeProvider,
     dragAndDropController: storageTreeDndController,
@@ -142,6 +154,7 @@ export function activate(context: vscode.ExtensionContext): void {
     referencesTreeDisposable,
     analysisTreeDisposable,
     writingTreeDisposable,
+    chatViewDisposable,
     storageTreeView,
     initProjectDisposable,
     reinitializeProjectDisposable,

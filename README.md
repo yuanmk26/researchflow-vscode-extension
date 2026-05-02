@@ -57,4 +57,4 @@ npm run compile
 
 - 当前后端接口调用为占位实现
 - 本阶段刻意不实现 AI/业务逻辑
-- 当前不使用 Webview，仅使用 Tree View
+- 除 ResearchFlow Chat 外，主体导航仍使用 Tree View；Chat 使用 Webview View，可由用户拖到 VS Code Secondary Sidebar 形成右侧聊天栏

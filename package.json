@@ -26,7 +26,8 @@
     "onView:researchflow.references",
     "onView:researchflow.analysis",
     "onView:researchflow.writing",
-    "onView:researchflow.storage"
+    "onView:researchflow.storage",
+    "onView:researchflow.chat"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -145,6 +146,11 @@
         {
           "id": "researchflow.storage",
           "name": "Storage"
+        },
+        {
+          "id": "researchflow.chat",
+          "name": "Chat",
+          "type": "webview"
         }
       ]
     },
