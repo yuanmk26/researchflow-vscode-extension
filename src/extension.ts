@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 
 import { createAnalysisDeleteExperimentCommand } from "./commands/deleteAnalysisExperiment";
 import { createAnalysisDeleteFileCommand } from "./commands/deleteAnalysisFile";
+import { createDeleteStorageDataCommand } from "./commands/deleteStorageData";
 import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExperiment";
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
 import { createStorageDataFolderCommand } from "./commands/createStorageDataFolder";
@@ -122,6 +123,10 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.storage.moveData",
     createMoveStorageDataCommand(storageTreeProvider, () => storageTreeView.selection)
   );
+  const storageDeleteDataDisposable = vscode.commands.registerCommand(
+    "researchflow.storage.deleteData",
+    createDeleteStorageDataCommand(storageTreeProvider, () => storageTreeView.selection)
+  );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
   const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
@@ -154,6 +159,7 @@ export function activate(context: vscode.ExtensionContext): void {
     storageNewDataFolderDisposable,
     storageOpenDataInfoDisposable,
     storageMoveDataDisposable,
+    storageDeleteDataDisposable,
     analysisWatcher,
     storageWatcher,
     analysisLastActiveTrackingDisposable,
