@@ -240,7 +240,7 @@
         {
           "command": "researchflow.storage.deleteData",
           "when": "view == researchflow.storage && viewItem == storageDataFile",
-          "group": "navigation"
+          "group": "z_delete@99"
         }
       ]
     }
