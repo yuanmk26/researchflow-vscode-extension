@@ -139,6 +139,16 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.storage.deleteData",
     createDeleteStorageDataCommand(storageTreeProvider, () => storageTreeView.selection)
   );
+  const openChatDisposable = vscode.commands.registerCommand("researchflow.chat.open", async (): Promise<void> => {
+    await vscode.commands.executeCommand(`${ResearchFlowChatViewProvider.viewType}.focus`);
+  });
+  const moveChatToRightSidebarDisposable = vscode.commands.registerCommand(
+    "researchflow.chat.moveToRightSidebar",
+    async (): Promise<void> => {
+      await vscode.commands.executeCommand(`${ResearchFlowChatViewProvider.viewType}.focus`);
+      await vscode.commands.executeCommand("workbench.action.moveFocusedView");
+    }
+  );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
   const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
@@ -173,6 +183,8 @@ export function activate(context: vscode.ExtensionContext): void {
     storageOpenDataInfoDisposable,
     storageMoveDataDisposable,
     storageDeleteDataDisposable,
+    openChatDisposable,
+    moveChatToRightSidebarDisposable,
     analysisWatcher,
     storageWatcher,
     analysisLastActiveTrackingDisposable,

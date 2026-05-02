@@ -22,6 +22,8 @@
     "onCommand:researchflow.storage.openDataInfo",
     "onCommand:researchflow.storage.moveData",
     "onCommand:researchflow.storage.deleteData",
+    "onCommand:researchflow.chat.open",
+    "onCommand:researchflow.chat.moveToRightSidebar",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
@@ -114,6 +116,16 @@
         "command": "researchflow.storage.deleteData",
         "title": "ResearchFlow: Delete Data File",
         "icon": "$(trash)"
+      },
+      {
+        "command": "researchflow.chat.open",
+        "title": "ResearchFlow: Open Chat",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "researchflow.chat.moveToRightSidebar",
+        "title": "ResearchFlow: Move Chat to Right Sidebar",
+        "icon": "$(layout-sidebar-right)"
       }
     ],
     "viewsContainers": {
@@ -121,6 +133,13 @@
         {
           "id": "researchflow",
           "title": "ResearchFlow",
+          "icon": "resources/researchflow.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "researchflow-chat",
+          "title": "ResearchFlow Chat",
           "icon": "resources/researchflow.svg"
         }
       ]
@@ -146,7 +165,9 @@
         {
           "id": "researchflow.storage",
           "name": "Storage"
-        },
+        }
+      ],
+      "researchflow-chat": [
         {
           "id": "researchflow.chat",
           "name": "Chat",
@@ -159,6 +180,11 @@
         {
           "command": "researchflow.analysis.newExperiment",
           "when": "view == researchflow.analysis",
+          "group": "navigation@1"
+        },
+        {
+          "command": "researchflow.chat.moveToRightSidebar",
+          "when": "view == researchflow.chat",
           "group": "navigation@1"
         }
       ],
