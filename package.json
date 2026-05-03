@@ -252,12 +252,12 @@
         {
           "command": "researchflow.analysis.deleteExperiment",
           "when": "view == researchflow.analysis && viewItem == analysisTask",
-          "group": "inline"
+          "group": "z_delete@99"
         },
         {
           "command": "researchflow.analysis.deleteFile",
           "when": "view == researchflow.analysis && viewItem == analysisStoredFile",
-          "group": "inline"
+          "group": "z_delete@99"
         },
         {
           "command": "researchflow.analysis.newExperiment",
