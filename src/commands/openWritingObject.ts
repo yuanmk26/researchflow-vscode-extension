@@ -17,11 +17,7 @@ async function focusEditorGroup(group: "first" | "second"): Promise<void> {
 }
 
 async function closeAllEditorTabs(): Promise<void> {
-  for (const tabGroup of vscode.window.tabGroups.all) {
-    if (tabGroup.tabs.length > 0) {
-      await vscode.window.tabGroups.close([...tabGroup.tabs], true);
-    }
-  }
+  await vscode.commands.executeCommand("workbench.action.closeAllEditors");
 }
 
 async function fileExists(uri: vscode.Uri): Promise<boolean> {
@@ -107,7 +103,6 @@ export function createOpenWritingObjectCommand(
         return;
       }
 
-      await forceTwoGroupLayout();
       await closeAllEditorTabs();
       await forceTwoGroupLayout();
       await openMainTex(mainTexUri);
