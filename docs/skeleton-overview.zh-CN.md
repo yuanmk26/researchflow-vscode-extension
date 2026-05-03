@@ -1,104 +1,73 @@
-# ResearchFlow 骨架说明（中文）
+# ResearchFlow Extension Skeleton Overview
 
-本文档用于解释当前 VSCode 扩展骨架各部分的职责，帮助你快速理解“前端薄层 + 后端核心”的分层设计。
+This document summarizes the current VS Code extension structure and the project directory model.
 
-## 1. 整体定位
+## Positioning
 
-ResearchFlow Extension 目前是一个轻量入口层，主要负责：
+The extension is a lightweight VS Code entry layer. It is responsible for:
 
-- 与 VSCode 交互（命令、侧边栏、工作区文件读写）
-- 将请求转发给本地后端 `ResearchFlow Core`
-- 管理最小项目状态（`.researchflow/project.json`）
+- VS Code commands, tree views, workspace file operations, and webview wiring.
+- Minimal project state in `.researchflow/project.json`.
+- A placeholder service layer for future ResearchFlow Core calls.
 
-当前版本不包含业务 AI 逻辑。除 ResearchFlow Chat 外，主体导航仍使用 Tree View；Chat 使用 Webview View。VS Code 不允许扩展默认直接贡献到 Secondary Sidebar，可首次运行 `ResearchFlow: Move Chat to Right Sidebar`，并在 VS Code 的移动视图菜单中选择 Secondary Sidebar；VS Code 会记住该布局。
+Business logic and AI workflows are intentionally thin in this repository.
 
-## 2. 目录与职责
+## Project Directories
 
-### `src/extension.ts`
+ResearchFlow now treats these root directories as required:
 
-- 扩展生命周期入口。
-- 在 `activate(context)` 中完成：
-  - 初始化 `ProjectManager`（项目状态）
-  - 初始化 `CoreClient`（后端通信）
-  - 初始化 `ProjectTreeProvider`（侧边栏树）
-  - 注册 3 个命令
-  - 注册 `researchflow.projects` TreeDataProvider
+- `References/`
+- `Analysis/`
+- `Data/`
+- `Writing/`
 
-### `src/commands/`
+Root-level `Figures/` and `Tables/` are no longer required and are not created for new projects. Existing directories with those names are preserved if users already have them.
 
-命令层负责“收集 VSCode 上下文 + 调服务 + 弹消息”，不放业务决策。
+Experiment-generated figures and tables belong under each experiment:
 
-- `initProject.ts`
-  - 弹出输入框获取项目名
-  - 创建 `.researchflow/project.json`
-- `recommendCitations.ts`
-  - 读取编辑器选中文本（无选中则读取全文）
-  - 调用 `coreClient.recommendCitations(text)`
-  - 用 `showInformationMessage` 显示占位结果
-- `draftCaption.ts`
-  - 获取当前文件路径
-  - 调用 `coreClient.generateCaption(filePath)`
-  - 显示返回 caption
+```text
+Analysis/
+  experiment-name/
+    scripts/
+    figures/
+    tables/
+```
 
-### `src/views/projectTreeProvider.ts`
+Writing should cite frozen copies under the writing item:
 
-- 侧边栏树数据提供者（Tree View）。
-- 当前为静态占位数据，展示：
-  - `Active Project`
-  - `Papers`
-  - `Figures`
-- 提供 `refresh()`，为后续动态刷新预留。
+```text
+Writing/
+  paper-name/
+    figures/
+    tables/
+```
 
-### `src/services/coreClient.ts`
+`Data/` is project-level storage for shared datasets and derived data that may be reused by multiple experiments.
 
-- 统一封装对本地后端 `http://127.0.0.1:27182` 的 HTTP 调用。
-- 当前提供：
-  - `recommendCitations(text)`
-  - `generateCaption(filePath)`
-- 通过私有 `post<T>()` 复用请求逻辑。
-- 已预留 TODO：认证、超时、重试、熔断。
+## Important Files
 
-### `src/state/projectManager.ts`
+- `src/extension.ts`: extension activation, command registration, tree view registration, and file watchers.
+- `src/state/projectManager.ts`: project config loading and required directory/metadata validation.
+- `src/views/dataTreeProvider.ts`: Data tree provider and drag-and-drop handling for files under `Data/`.
+- `src/views/analysisTreeProvider.ts`: Analysis experiment tree with `scripts`, `figures`, and `tables` groups.
+- `src/commands/`: command handlers for project, analysis, data, citation, and caption actions.
+- `src/services/coreClient.ts`: placeholder HTTP client for local ResearchFlow Core integration.
 
-- 工作区项目状态管理。
-- 当前能力：
-  - 获取活动工作区目录
-  - 定位配置文件路径 `.researchflow/project.json`
-  - 检测项目配置是否存在
-  - 读取并解析项目配置
-- 已预留 TODO：schema 校验、错误状态管理。
+## Views
 
-### `src/types/index.ts`
+The ResearchFlow activity bar contributes:
 
-- 定义共享基础类型：
-  - `Project`
-  - `Reference`
-  - `Artifact`
-- 作用是让命令层、服务层、状态层共享同一份接口约定。
+- Projects
+- References
+- Analysis
+- Writing
+- Data
 
-## 3. 扩展如何被激活
+ResearchFlow Chat is contributed as a webview view in the panel container.
 
-来自 `package.json` 的激活事件：
+## Build
 
-- `onCommand:researchflow.initProject`
-- `onView:researchflow.projects`
-
-这意味着：
-
-- 用户首次执行初始化命令会激活扩展
-- 用户打开 `ResearchFlow` 视图时也会激活扩展
-
-## 4. 目前可见功能
-
-- 命令面板中可用：
-  - `ResearchFlow: Init Project`
-  - `ResearchFlow: Recommend Citations`
-  - `ResearchFlow: Draft Caption`
-- 活动栏可见 `ResearchFlow` 容器及 `Projects` 树视图
-
-## 5. 后续扩展建议（下一阶段）
-
-- 将 Tree View 从静态数据切换为基于 `ProjectManager + CoreClient` 的动态数据
-- 为 `CoreClient` 增加统一错误分类和超时控制
-- 将命令输出从 toast 迁移到更结构化的展示层（例如专用面板）
-- 为 `.researchflow/project.json` 增加版本字段和兼容策略
+```bash
+npm install
+npm run compile
+```

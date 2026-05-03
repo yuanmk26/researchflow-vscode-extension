@@ -1,9 +1,9 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { StorageTreeItem, StorageTreeProvider } from "../views/storageTreeProvider";
+import { DataTreeItem, DataTreeProvider } from "../views/dataTreeProvider";
 
-function resolveDataFileUri(target?: vscode.Uri | StorageTreeItem): vscode.Uri | undefined {
+function resolveDataFileUri(target?: vscode.Uri | DataTreeItem): vscode.Uri | undefined {
   if (!target) {
     return undefined;
   }
@@ -12,14 +12,14 @@ function resolveDataFileUri(target?: vscode.Uri | StorageTreeItem): vscode.Uri |
     return target;
   }
 
-  if (target.kind === "file" && target.groupName === "data" && target.dataEntryKind === "file" && target.uri) {
+  if (target.kind === "file" && target.dataEntryKind === "file" && target.uri) {
     return target.uri;
   }
 
   return undefined;
 }
 
-function resolveDataFileUris(items: readonly (vscode.Uri | StorageTreeItem)[]): vscode.Uri[] {
+function resolveDataFileUris(items: readonly (vscode.Uri | DataTreeItem)[]): vscode.Uri[] {
   const seen = new Set<string>();
   const uris: vscode.Uri[] = [];
 
@@ -86,11 +86,11 @@ async function writeSidecarForDataFile(dataFileUri: vscode.Uri): Promise<void> {
   await vscode.workspace.fs.writeFile(sidecarUri, new TextEncoder().encode(buildDataInfoMarkdown(dataFileUri, stat)));
 }
 
-export function createMoveStorageDataCommand(
-  storageTreeProvider: StorageTreeProvider,
-  getSelection: () => readonly StorageTreeItem[]
-): (target?: vscode.Uri | StorageTreeItem) => Promise<void> {
-  return async (target?: vscode.Uri | StorageTreeItem): Promise<void> => {
+export function createMoveDataCommand(
+  dataTreeProvider: DataTreeProvider,
+  getSelection: () => readonly DataTreeItem[]
+): (target?: vscode.Uri | DataTreeItem) => Promise<void> {
+  return async (target?: vscode.Uri | DataTreeItem): Promise<void> => {
     const selectedItems = getSelection();
     const includesTarget = selectedItems.some((item) => item.uri?.toString() === resolveDataFileUri(target)?.toString());
     const sourceUris =
@@ -103,7 +103,7 @@ export function createMoveStorageDataCommand(
       return;
     }
 
-    const dataRootResult = await storageTreeProvider.getStorageDataRootUri();
+    const dataRootResult = await dataTreeProvider.getDataRootUri();
     if (!dataRootResult.uri) {
       void vscode.window.showWarningMessage(dataRootResult.message);
       return;
@@ -171,7 +171,7 @@ export function createMoveStorageDataCommand(
       }
     }
 
-    storageTreeProvider.refresh();
+    dataTreeProvider.refresh();
     if (movedCount > 0) {
       void vscode.window.showInformationMessage(`Moved ${movedCount} data file(s) successfully.`);
     }

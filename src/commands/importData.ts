@@ -1,13 +1,13 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { StorageTreeItem, StorageTreeProvider } from "../views/storageTreeProvider";
+import { DataTreeItem, DataTreeProvider } from "../views/dataTreeProvider";
 
-export function createStorageImportDataCommand(
-  storageTreeProvider: StorageTreeProvider
-): (target?: vscode.Uri | StorageTreeItem) => Promise<void> {
-  return async (_target?: vscode.Uri | StorageTreeItem): Promise<void> => {
-    const dataRootResult = await storageTreeProvider.ensureStorageDataRootUri();
+export function createImportDataCommand(
+  dataTreeProvider: DataTreeProvider
+): (target?: vscode.Uri | DataTreeItem) => Promise<void> {
+  return async (_target?: vscode.Uri | DataTreeItem): Promise<void> => {
+    const dataRootResult = await dataTreeProvider.ensureDataRootUri();
     if (!dataRootResult.uri) {
       void vscode.window.showWarningMessage(dataRootResult.message);
       return;
@@ -63,7 +63,7 @@ export function createStorageImportDataCommand(
       }
     }
 
-    storageTreeProvider.refresh();
+    dataTreeProvider.refresh();
     void vscode.window.showInformationMessage(
       `Import completed: ${importedCount} file(s) imported${skippedCount > 0 ? `, ${skippedCount} skipped` : ""}.`
     );

@@ -1,9 +1,9 @@
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { StorageTreeItem } from "../views/storageTreeProvider";
+import { DataTreeItem } from "../views/dataTreeProvider";
 
-function resolveDataFileUri(target?: vscode.Uri | StorageTreeItem): vscode.Uri | undefined {
+function resolveDataFileUri(target?: vscode.Uri | DataTreeItem): vscode.Uri | undefined {
   if (!target) {
     return undefined;
   }
@@ -12,7 +12,7 @@ function resolveDataFileUri(target?: vscode.Uri | StorageTreeItem): vscode.Uri |
     return target;
   }
 
-  if (target.kind === "file" && target.groupName === "data" && target.uri) {
+  if (target.kind === "file" && target.uri) {
     return target.uri;
   }
 
@@ -35,7 +35,7 @@ async function closeAllEditorTabs(): Promise<void> {
   }
 }
 
-function findStorageDataRoot(fileUri: vscode.Uri): vscode.Uri {
+function findDataRoot(fileUri: vscode.Uri): vscode.Uri {
   let currentPath = path.dirname(fileUri.fsPath);
 
   while (true) {
@@ -69,8 +69,8 @@ function buildDataInfoMarkdown(dataUri: vscode.Uri, stat: vscode.FileStat): stri
 `;
 }
 
-export function createOpenStorageDataInfoCommand(): (target?: vscode.Uri | StorageTreeItem) => Promise<void> {
-  return async (target?: vscode.Uri | StorageTreeItem): Promise<void> => {
+export function createOpenDataInfoCommand(): (target?: vscode.Uri | DataTreeItem) => Promise<void> {
+  return async (target?: vscode.Uri | DataTreeItem): Promise<void> => {
     const dataUri = resolveDataFileUri(target);
     if (!dataUri) {
       void vscode.window.showWarningMessage("No data file selected.");
@@ -102,7 +102,7 @@ export function createOpenStorageDataInfoCommand(): (target?: vscode.Uri | Stora
       return;
     }
 
-    const dataRootUri = findStorageDataRoot(dataUri);
+    const dataRootUri = findDataRoot(dataUri);
     const metaDir = vscode.Uri.joinPath(dataRootUri, ".meta");
     const sidecarUri = vscode.Uri.joinPath(metaDir, `${fileName}.rfdata.md`);
 

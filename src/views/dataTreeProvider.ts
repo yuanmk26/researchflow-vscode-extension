@@ -3,46 +3,35 @@ import * as path from "path";
 
 import { ProjectManager } from "../state/projectManager";
 
-export type StorageTreeItemKind = "group" | "file" | "info";
-export type StorageGroupName = "figure" | "table" | "data";
+export type DataTreeItemKind = "file" | "info";
 
-type StorageDataEntryKind = "directory" | "file";
-const STORAGE_TREE_DND_MIME = "application/vnd.code.tree.researchflow.storage";
+type DataEntryKind = "directory" | "file";
+const DATA_TREE_DND_MIME = "application/vnd.code.tree.researchflow.data";
 
-export class StorageTreeItem extends vscode.TreeItem {
-  public readonly kind: StorageTreeItemKind;
+export class DataTreeItem extends vscode.TreeItem {
+  public readonly kind: DataTreeItemKind;
   public readonly uri?: vscode.Uri;
-  public readonly groupName?: StorageGroupName;
-  public readonly dataEntryKind?: StorageDataEntryKind;
+  public readonly dataEntryKind?: DataEntryKind;
 
   public constructor(
     label: string,
-    kind: StorageTreeItemKind,
+    kind: DataTreeItemKind,
     collapsibleState: vscode.TreeItemCollapsibleState,
     uri?: vscode.Uri,
-    groupName?: StorageGroupName,
-    dataEntryKind?: StorageDataEntryKind
+    dataEntryKind?: DataEntryKind
   ) {
     super(label, collapsibleState);
     this.kind = kind;
     this.uri = uri;
-    this.groupName = groupName;
     this.dataEntryKind = dataEntryKind;
-
-    if (kind === "group" && groupName) {
-      this.id = `storage-group:${groupName}`;
-      this.iconPath = new vscode.ThemeIcon("folder");
-      this.contextValue =
-        groupName === "data" ? "storageDataGroup" : groupName === "figure" ? "storageFigureGroup" : "storageTableGroup";
-    }
 
     if (kind === "file" && uri && dataEntryKind === "file") {
       this.id = uri.toString();
       this.resourceUri = uri;
       this.iconPath = new vscode.ThemeIcon("file");
-      this.contextValue = "storageDataFile";
+      this.contextValue = "dataFile";
       this.command = {
-        command: "researchflow.storage.openDataInfo",
+        command: "researchflow.data.openDataInfo",
         title: "Open Data Info",
         arguments: [uri]
       };
@@ -52,21 +41,21 @@ export class StorageTreeItem extends vscode.TreeItem {
       this.id = uri.toString();
       this.resourceUri = uri;
       this.iconPath = new vscode.ThemeIcon("folder");
-      this.contextValue = "storageDataDirectory";
+      this.contextValue = "dataDirectory";
     }
 
     if (kind === "info") {
-      this.contextValue = "storageInfo";
+      this.contextValue = "dataInfo";
       this.iconPath = new vscode.ThemeIcon("info");
     }
   }
 }
 
-export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeItem> {
-  private readonly _onDidChangeTreeData: vscode.EventEmitter<StorageTreeItem | undefined | void> =
-    new vscode.EventEmitter<StorageTreeItem | undefined | void>();
+export class DataTreeProvider implements vscode.TreeDataProvider<DataTreeItem> {
+  private readonly _onDidChangeTreeData: vscode.EventEmitter<DataTreeItem | undefined | void> =
+    new vscode.EventEmitter<DataTreeItem | undefined | void>();
 
-  public readonly onDidChangeTreeData: vscode.Event<StorageTreeItem | undefined | void> =
+  public readonly onDidChangeTreeData: vscode.Event<DataTreeItem | undefined | void> =
     this._onDidChangeTreeData.event;
 
   public constructor(private readonly projectManager: ProjectManager) {}
@@ -75,39 +64,23 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
     this._onDidChangeTreeData.fire();
   }
 
-  public getTreeItem(element: StorageTreeItem): vscode.TreeItem {
+  public getTreeItem(element: DataTreeItem): vscode.TreeItem {
     return element;
   }
 
-  public getChildren(element?: StorageTreeItem): Thenable<StorageTreeItem[]> {
+  public getChildren(element?: DataTreeItem): Thenable<DataTreeItem[]> {
     if (!element) {
-      return Promise.resolve([
-        new StorageTreeItem("Figure", "group", vscode.TreeItemCollapsibleState.Collapsed, undefined, "figure"),
-        new StorageTreeItem("Table", "group", vscode.TreeItemCollapsibleState.Collapsed, undefined, "table"),
-        new StorageTreeItem("Data", "group", vscode.TreeItemCollapsibleState.Collapsed, undefined, "data")
-      ]);
+      return this.buildDataRootItems();
     }
 
     if (element.kind === "file" && element.dataEntryKind === "directory" && element.uri) {
       return this.buildDataEntriesForDirectory(element.uri);
     }
 
-    if (element.kind !== "group" || !element.groupName) {
-      return Promise.resolve([]);
-    }
-
-    if (element.groupName === "figure") {
-      return Promise.resolve([new StorageTreeItem("Figure storage will be added next", "info", vscode.TreeItemCollapsibleState.None)]);
-    }
-
-    if (element.groupName === "table") {
-      return Promise.resolve([new StorageTreeItem("Table storage will be added next", "info", vscode.TreeItemCollapsibleState.None)]);
-    }
-
-    return this.buildDataRootItems();
+    return Promise.resolve([]);
   }
 
-  public async getStorageDataRootUri(): Promise<{ uri?: vscode.Uri; message: string }> {
+  public async getDataRootUri(): Promise<{ uri?: vscode.Uri; message: string }> {
     const directoryInfo = await this.projectManager.getProjectDirectoryInfo();
     if (!directoryInfo.workspaceFolder) {
       return {
@@ -140,7 +113,7 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
     return { uri: dataRootUri, message: "" };
   }
 
-  public async ensureStorageDataRootUri(): Promise<{ uri?: vscode.Uri; message: string }> {
+  public async ensureDataRootUri(): Promise<{ uri?: vscode.Uri; message: string }> {
     const directoryInfo = await this.projectManager.getProjectDirectoryInfo();
     if (!directoryInfo.workspaceFolder) {
       return {
@@ -161,14 +134,14 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
       return { uri: dataRootUri, message: "" };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      return { message: `Failed to prepare storage data directory: ${message}` };
+      return { message: `Failed to prepare data directory: ${message}` };
     }
   }
 
-  private async buildDataRootItems(): Promise<StorageTreeItem[]> {
-    const dataRootResult = await this.getStorageDataRootUri();
+  private async buildDataRootItems(): Promise<DataTreeItem[]> {
+    const dataRootResult = await this.getDataRootUri();
     if (!dataRootResult.uri) {
-      return [new StorageTreeItem(dataRootResult.message, "info", vscode.TreeItemCollapsibleState.None)];
+      return [new DataTreeItem(dataRootResult.message, "info", vscode.TreeItemCollapsibleState.None)];
     }
 
     const items = await this.buildDataEntriesForDirectory(dataRootResult.uri);
@@ -176,10 +149,10 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
       return items;
     }
 
-    return [new StorageTreeItem("No data files in Data", "info", vscode.TreeItemCollapsibleState.None)];
+    return [new DataTreeItem("No data files in Data", "info", vscode.TreeItemCollapsibleState.None)];
   }
 
-  private async buildDataEntriesForDirectory(directoryUri: vscode.Uri): Promise<StorageTreeItem[]> {
+  private async buildDataEntriesForDirectory(directoryUri: vscode.Uri): Promise<DataTreeItem[]> {
     const entries = await this.readDirectorySafe(directoryUri);
     const filteredEntries = entries.filter(([name, type]) => {
       if (name === ".meta") {
@@ -206,17 +179,16 @@ export class StorageTreeProvider implements vscode.TreeDataProvider<StorageTreeI
     return sortedEntries.map(([name, type]) => {
       const entryUri = vscode.Uri.joinPath(directoryUri, name);
       if ((type & vscode.FileType.Directory) !== 0) {
-        return new StorageTreeItem(
+        return new DataTreeItem(
           name,
           "file",
           vscode.TreeItemCollapsibleState.Collapsed,
           entryUri,
-          "data",
           "directory"
         );
       }
 
-      return new StorageTreeItem(name, "file", vscode.TreeItemCollapsibleState.None, entryUri, "data", "file");
+      return new DataTreeItem(name, "file", vscode.TreeItemCollapsibleState.None, entryUri, "file");
     });
   }
 
@@ -255,26 +227,26 @@ async function updateDataSidecar(dataFileUri: vscode.Uri, dataRootUri: vscode.Ur
   await vscode.workspace.fs.writeFile(sidecarUri, new TextEncoder().encode(buildDataInfoMarkdown(dataFileUri, stat)));
 }
 
-export class StorageTreeDragAndDropController implements vscode.TreeDragAndDropController<StorageTreeItem> {
-  public readonly dragMimeTypes = [STORAGE_TREE_DND_MIME];
-  public readonly dropMimeTypes = [STORAGE_TREE_DND_MIME];
+export class DataTreeDragAndDropController implements vscode.TreeDragAndDropController<DataTreeItem> {
+  public readonly dragMimeTypes = [DATA_TREE_DND_MIME];
+  public readonly dropMimeTypes = [DATA_TREE_DND_MIME];
 
-  public constructor(private readonly storageTreeProvider: StorageTreeProvider) {}
+  public constructor(private readonly dataTreeProvider: DataTreeProvider) {}
 
-  public async handleDrag(source: readonly StorageTreeItem[], dataTransfer: vscode.DataTransfer): Promise<void> {
+  public async handleDrag(source: readonly DataTreeItem[], dataTransfer: vscode.DataTransfer): Promise<void> {
     const draggableUris = source
-      .filter((item) => item.kind === "file" && item.groupName === "data" && item.dataEntryKind === "file" && item.uri)
+      .filter((item) => item.kind === "file" && item.dataEntryKind === "file" && item.uri)
       .map((item) => item.uri as vscode.Uri);
 
     if (draggableUris.length === 0) {
       return;
     }
 
-    dataTransfer.set(STORAGE_TREE_DND_MIME, new vscode.DataTransferItem(JSON.stringify(draggableUris.map((uri) => uri.toString()))));
+    dataTransfer.set(DATA_TREE_DND_MIME, new vscode.DataTransferItem(JSON.stringify(draggableUris.map((uri) => uri.toString()))));
   }
 
-  public async handleDrop(target: StorageTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
-    const dataRootResult = await this.storageTreeProvider.getStorageDataRootUri();
+  public async handleDrop(target: DataTreeItem | undefined, dataTransfer: vscode.DataTransfer): Promise<void> {
+    const dataRootResult = await this.dataTreeProvider.getDataRootUri();
     if (!dataRootResult.uri) {
       void vscode.window.showWarningMessage(dataRootResult.message);
       return;
@@ -290,7 +262,7 @@ export class StorageTreeDragAndDropController implements vscode.TreeDragAndDropC
       return;
     }
 
-    const dataItem = dataTransfer.get(STORAGE_TREE_DND_MIME);
+    const dataItem = dataTransfer.get(DATA_TREE_DND_MIME);
     if (!dataItem) {
       return;
     }
@@ -343,24 +315,20 @@ export class StorageTreeDragAndDropController implements vscode.TreeDragAndDropC
     }
 
     if (movedCount > 0) {
-      this.storageTreeProvider.refresh();
+      this.dataTreeProvider.refresh();
       void vscode.window.showInformationMessage(`Moved ${movedCount} data file(s).`);
     }
   }
 
   private async resolveDestinationFolder(
-    target: StorageTreeItem | undefined,
+    target: DataTreeItem | undefined,
     dataRootUri: vscode.Uri
   ): Promise<vscode.Uri | undefined> {
     if (!target) {
       return dataRootUri;
     }
 
-    if (target.kind === "group" && target.groupName === "data") {
-      return dataRootUri;
-    }
-
-    if (target.kind === "file" && target.groupName === "data" && target.dataEntryKind === "directory" && target.uri) {
+    if (target.kind === "file" && target.dataEntryKind === "directory" && target.uri) {
       return target.uri;
     }
 

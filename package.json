@@ -17,18 +17,18 @@
     "onCommand:researchflow.analysis.newExperiment",
     "onCommand:researchflow.analysis.deleteExperiment",
     "onCommand:researchflow.analysis.deleteFile",
-    "onCommand:researchflow.storage.importData",
-    "onCommand:researchflow.storage.newDataFolder",
-    "onCommand:researchflow.storage.openDataInfo",
-    "onCommand:researchflow.storage.moveData",
-    "onCommand:researchflow.storage.deleteData",
+    "onCommand:researchflow.data.importData",
+    "onCommand:researchflow.data.newDataFolder",
+    "onCommand:researchflow.data.openDataInfo",
+    "onCommand:researchflow.data.moveData",
+    "onCommand:researchflow.data.deleteData",
     "onCommand:researchflow.chat.open",
     "onCommand:researchflow.chat.moveToRightSidebar",
     "onView:researchflow.projects",
     "onView:researchflow.references",
     "onView:researchflow.analysis",
     "onView:researchflow.writing",
-    "onView:researchflow.storage",
+    "onView:researchflow.data",
     "onView:researchflow.chat"
   ],
   "main": "./out/extension.js",
@@ -93,27 +93,27 @@
         "icon": "$(trash)"
       },
       {
-        "command": "researchflow.storage.importData",
-        "title": "ResearchFlow: Storage Import Data",
+        "command": "researchflow.data.importData",
+        "title": "ResearchFlow: Import Data",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "researchflow.storage.newDataFolder",
-        "title": "ResearchFlow: Storage New Data Folder",
+        "command": "researchflow.data.newDataFolder",
+        "title": "ResearchFlow: New Data Folder",
         "icon": "$(new-folder)"
       },
       {
-        "command": "researchflow.storage.openDataInfo",
+        "command": "researchflow.data.openDataInfo",
         "title": "ResearchFlow: Open Data Info",
         "icon": "$(preview)"
       },
       {
-        "command": "researchflow.storage.moveData",
+        "command": "researchflow.data.moveData",
         "title": "ResearchFlow: Move Data File",
         "icon": "$(arrow-swap)"
       },
       {
-        "command": "researchflow.storage.deleteData",
+        "command": "researchflow.data.deleteData",
         "title": "ResearchFlow: Delete Data File",
         "icon": "$(trash)"
       },
@@ -163,8 +163,8 @@
           "name": "Writing"
         },
         {
-          "id": "researchflow.storage",
-          "name": "Storage"
+          "id": "researchflow.data",
+          "name": "Data"
         }
       ],
       "researchflow-chat": [
@@ -181,6 +181,16 @@
           "command": "researchflow.analysis.newExperiment",
           "when": "view == researchflow.analysis",
           "group": "navigation@1"
+        },
+        {
+          "command": "researchflow.data.importData",
+          "when": "view == researchflow.data",
+          "group": "navigation@1"
+        },
+        {
+          "command": "researchflow.data.newDataFolder",
+          "when": "view == researchflow.data",
+          "group": "navigation@2"
         },
         {
           "command": "researchflow.chat.moveToRightSidebar",
@@ -255,23 +265,13 @@
           "group": "navigation"
         },
         {
-          "command": "researchflow.storage.importData",
-          "when": "view == researchflow.storage && viewItem == storageDataGroup",
-          "group": "inline"
-        },
-        {
-          "command": "researchflow.storage.newDataFolder",
-          "when": "view == researchflow.storage && viewItem == storageDataGroup",
-          "group": "inline"
-        },
-        {
-          "command": "researchflow.storage.moveData",
-          "when": "view == researchflow.storage && viewItem == storageDataFile",
+          "command": "researchflow.data.moveData",
+          "when": "view == researchflow.data && viewItem == dataFile",
           "group": "navigation"
         },
         {
-          "command": "researchflow.storage.deleteData",
-          "when": "view == researchflow.storage && viewItem == storageDataFile",
+          "command": "researchflow.data.deleteData",
+          "when": "view == researchflow.data && viewItem == dataFile",
           "group": "z_delete@99"
         }
       ]

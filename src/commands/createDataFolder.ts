@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { StorageTreeItem, StorageTreeProvider } from "../views/storageTreeProvider";
+import { DataTreeItem, DataTreeProvider } from "../views/dataTreeProvider";
 
 const INVALID_SEGMENT_CHARS = /[<>:"|?*\x00-\x1F]/;
 const WINDOWS_DRIVE_PATTERN = /^[a-zA-Z]:/;
@@ -42,11 +42,11 @@ function normalizeRelativeFolderPath(input: string): { normalizedPath?: string; 
   return { normalizedPath: segments.join("/") };
 }
 
-export function createStorageDataFolderCommand(
-  storageTreeProvider: StorageTreeProvider
-): (target?: vscode.Uri | StorageTreeItem) => Promise<void> {
-  return async (_target?: vscode.Uri | StorageTreeItem): Promise<void> => {
-    const dataRootResult = await storageTreeProvider.ensureStorageDataRootUri();
+export function createDataFolderCommand(
+  dataTreeProvider: DataTreeProvider
+): (target?: vscode.Uri | DataTreeItem) => Promise<void> {
+  return async (_target?: vscode.Uri | DataTreeItem): Promise<void> => {
+    const dataRootResult = await dataTreeProvider.ensureDataRootUri();
     if (!dataRootResult.uri) {
       void vscode.window.showWarningMessage(dataRootResult.message);
       return;
@@ -85,7 +85,7 @@ export function createStorageDataFolderCommand(
 
     try {
       await vscode.workspace.fs.createDirectory(targetUri);
-      storageTreeProvider.refresh();
+      dataTreeProvider.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       void vscode.window.showErrorMessage(`Failed to create folder: ${message}`);

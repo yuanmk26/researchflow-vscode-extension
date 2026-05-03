@@ -2,16 +2,16 @@ import * as vscode from "vscode";
 
 import { createAnalysisDeleteExperimentCommand } from "./commands/deleteAnalysisExperiment";
 import { createAnalysisDeleteFileCommand } from "./commands/deleteAnalysisFile";
-import { createDeleteStorageDataCommand } from "./commands/deleteStorageData";
+import { createDeleteDataCommand } from "./commands/deleteData";
 import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExperiment";
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
-import { createStorageDataFolderCommand } from "./commands/createStorageDataFolder";
+import { createDataFolderCommand } from "./commands/createDataFolder";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
-import { createStorageImportDataCommand } from "./commands/importStorageData";
+import { createImportDataCommand } from "./commands/importData";
 import { createInitProjectCommand } from "./commands/initProject";
-import { createMoveStorageDataCommand } from "./commands/moveStorageData";
+import { createMoveDataCommand } from "./commands/moveData";
 import { createOpenAnalysisTaskCommand, registerAnalysisTaskLastActiveTracking } from "./commands/openAnalysisTask";
-import { createOpenStorageDataInfoCommand } from "./commands/openStorageDataInfo";
+import { createOpenDataInfoCommand } from "./commands/openDataInfo";
 import { createOpenProjectDirectoryCommand } from "./commands/openProjectDirectory";
 import { createRenameProjectCommand } from "./commands/renameProject";
 import { createRecommendCitationsCommand } from "./commands/recommendCitations";
@@ -23,7 +23,7 @@ import { AnalysisTreeProvider } from "./views/analysisTreeProvider";
 import { ProjectTreeProvider } from "./views/projectTreeProvider";
 import { ReferencesTreeProvider } from "./views/referencesTreeProvider";
 import { ResearchFlowChatViewProvider } from "./views/researchFlowChatViewProvider";
-import { StorageTreeDragAndDropController, StorageTreeProvider } from "./views/storageTreeProvider";
+import { DataTreeDragAndDropController, DataTreeProvider } from "./views/dataTreeProvider";
 import { WritingTreeProvider } from "./views/writingTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -34,8 +34,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const referencesTreeProvider = new ReferencesTreeProvider();
   const analysisTreeProvider = new AnalysisTreeProvider(projectManager);
   const writingTreeProvider = new WritingTreeProvider();
-  const storageTreeProvider = new StorageTreeProvider(projectManager);
-  const storageTreeDndController = new StorageTreeDragAndDropController(storageTreeProvider);
+  const dataTreeProvider = new DataTreeProvider(projectManager);
+  const dataTreeDndController = new DataTreeDragAndDropController(dataTreeProvider);
   const researchFlowChatViewProvider = new ResearchFlowChatViewProvider(
     context.extensionUri,
     researchFlowAgentService
@@ -53,9 +53,9 @@ export function activate(context: vscode.ExtensionContext): void {
     researchFlowChatViewProvider,
     { webviewOptions: { retainContextWhenHidden: true } }
   );
-  const storageTreeView = vscode.window.createTreeView("researchflow.storage", {
-    treeDataProvider: storageTreeProvider,
-    dragAndDropController: storageTreeDndController,
+  const dataTreeView = vscode.window.createTreeView("researchflow.data", {
+    treeDataProvider: dataTreeProvider,
+    dragAndDropController: dataTreeDndController,
     canSelectMany: true
   });
   const initProjectDisposable = vscode.commands.registerCommand(
@@ -64,7 +64,7 @@ export function activate(context: vscode.ExtensionContext): void {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
       analysisTreeProvider.refresh();
-      storageTreeProvider.refresh();
+      dataTreeProvider.refresh();
     }
   );
   const reinitializeProjectDisposable = vscode.commands.registerCommand(
@@ -73,7 +73,7 @@ export function activate(context: vscode.ExtensionContext): void {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
       analysisTreeProvider.refresh();
-      storageTreeProvider.refresh();
+      dataTreeProvider.refresh();
     }
   );
   const openProjectDirectoryDisposable = vscode.commands.registerCommand(
@@ -119,25 +119,25 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.analysis.deleteFile",
     createAnalysisDeleteFileCommand(analysisTreeProvider)
   );
-  const storageImportDataDisposable = vscode.commands.registerCommand(
-    "researchflow.storage.importData",
-    createStorageImportDataCommand(storageTreeProvider)
+  const dataImportDataDisposable = vscode.commands.registerCommand(
+    "researchflow.data.importData",
+    createImportDataCommand(dataTreeProvider)
   );
-  const storageNewDataFolderDisposable = vscode.commands.registerCommand(
-    "researchflow.storage.newDataFolder",
-    createStorageDataFolderCommand(storageTreeProvider)
+  const dataNewDataFolderDisposable = vscode.commands.registerCommand(
+    "researchflow.data.newDataFolder",
+    createDataFolderCommand(dataTreeProvider)
   );
-  const storageOpenDataInfoDisposable = vscode.commands.registerCommand(
-    "researchflow.storage.openDataInfo",
-    createOpenStorageDataInfoCommand()
+  const dataOpenDataInfoDisposable = vscode.commands.registerCommand(
+    "researchflow.data.openDataInfo",
+    createOpenDataInfoCommand()
   );
-  const storageMoveDataDisposable = vscode.commands.registerCommand(
-    "researchflow.storage.moveData",
-    createMoveStorageDataCommand(storageTreeProvider, () => storageTreeView.selection)
+  const dataMoveDataDisposable = vscode.commands.registerCommand(
+    "researchflow.data.moveData",
+    createMoveDataCommand(dataTreeProvider, () => dataTreeView.selection)
   );
-  const storageDeleteDataDisposable = vscode.commands.registerCommand(
-    "researchflow.storage.deleteData",
-    createDeleteStorageDataCommand(storageTreeProvider, () => storageTreeView.selection)
+  const dataDeleteDataDisposable = vscode.commands.registerCommand(
+    "researchflow.data.deleteData",
+    createDeleteDataCommand(dataTreeProvider, () => dataTreeView.selection)
   );
   const openChatDisposable = vscode.commands.registerCommand("researchflow.chat.open", async (): Promise<void> => {
     await vscode.commands.executeCommand(`${ResearchFlowChatViewProvider.viewType}.focus`);
@@ -150,14 +150,14 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
-  const storageWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
+  const dataWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
   const analysisWatcherChangeDisposable = analysisWatcher.onDidChange(() => analysisTreeProvider.refresh());
   const analysisWatcherDeleteDisposable = analysisWatcher.onDidDelete(() => analysisTreeProvider.refresh());
-  const storageWatcherCreateDisposable = storageWatcher.onDidCreate(() => storageTreeProvider.refresh());
-  const storageWatcherChangeDisposable = storageWatcher.onDidChange(() => storageTreeProvider.refresh());
-  const storageWatcherDeleteDisposable = storageWatcher.onDidDelete(() => storageTreeProvider.refresh());
+  const dataWatcherCreateDisposable = dataWatcher.onDidCreate(() => dataTreeProvider.refresh());
+  const dataWatcherChangeDisposable = dataWatcher.onDidChange(() => dataTreeProvider.refresh());
+  const dataWatcherDeleteDisposable = dataWatcher.onDidDelete(() => dataTreeProvider.refresh());
 
   context.subscriptions.push(
     projectsTreeDisposable,
@@ -165,7 +165,7 @@ export function activate(context: vscode.ExtensionContext): void {
     analysisTreeDisposable,
     writingTreeDisposable,
     chatViewDisposable,
-    storageTreeView,
+    dataTreeView,
     initProjectDisposable,
     reinitializeProjectDisposable,
     openProjectDirectoryDisposable,
@@ -178,22 +178,22 @@ export function activate(context: vscode.ExtensionContext): void {
     analysisNewExperimentDisposable,
     analysisDeleteExperimentDisposable,
     analysisDeleteFileDisposable,
-    storageImportDataDisposable,
-    storageNewDataFolderDisposable,
-    storageOpenDataInfoDisposable,
-    storageMoveDataDisposable,
-    storageDeleteDataDisposable,
+    dataImportDataDisposable,
+    dataNewDataFolderDisposable,
+    dataOpenDataInfoDisposable,
+    dataMoveDataDisposable,
+    dataDeleteDataDisposable,
     openChatDisposable,
     moveChatToRightSidebarDisposable,
     analysisWatcher,
-    storageWatcher,
+    dataWatcher,
     analysisLastActiveTrackingDisposable,
     analysisWatcherCreateDisposable,
     analysisWatcherChangeDisposable,
     analysisWatcherDeleteDisposable,
-    storageWatcherCreateDisposable,
-    storageWatcherChangeDisposable,
-    storageWatcherDeleteDisposable
+    dataWatcherCreateDisposable,
+    dataWatcherChangeDisposable,
+    dataWatcherDeleteDisposable
   );
 }
 

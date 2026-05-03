@@ -3,15 +3,8 @@ import * as vscode from "vscode";
 import { Project } from "../types";
 
 export type ProjectDirectorySource = "project" | "workspace" | "none";
-export const REQUIRED_PROJECT_DIRECTORIES = ["References", "Analysis", "Figures", "Tables", "Data", "Writing"] as const;
-export const REQUIRED_PROJECT_METADATA_FILES = [
-  "analysis.json",
-  "data.json",
-  "figures.json",
-  "references.json",
-  "tables.json",
-  "writing.json"
-] as const;
+export const REQUIRED_PROJECT_DIRECTORIES = ["References", "Analysis", "Data", "Writing"] as const;
+export const REQUIRED_PROJECT_METADATA_FILES = ["analysis.json", "data.json", "references.json", "writing.json"] as const;
 
 export interface ProjectDirectoryInfo {
   initialized: boolean;

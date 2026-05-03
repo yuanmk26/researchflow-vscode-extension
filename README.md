@@ -1,60 +1,77 @@
-# ResearchFlow VSCode 扩展骨架
+# ResearchFlow VS Code Extension
 
-ResearchFlow 是研究工作流系统的 VSCode 前端入口层。本仓库提供一个可扩展、可编译、可调试的 TypeScript 骨架，用于后续连接本地后端（ResearchFlow Core）。
+ResearchFlow is a VS Code entry layer for an AI-assisted research workflow. This repository contains the extension shell, project initialization, tree views, and command wiring used to connect local project files with later ResearchFlow Core services.
 
-## 当前骨架包含什么
+## Project Layout
 
-- 基于 TypeScript 的 VSCode 扩展基础结构
-- 命令系统（含占位实现）
-- Activity Bar 容器 + `Projects` 树视图
-- 工作区项目初始化（`.researchflow/project.json`）
-- 面向后端通信的基础服务层（`CoreClient`）
+New ResearchFlow projects create and validate these root directories:
 
-## 命令列表
+- `References/`: project references and citation material.
+- `Analysis/`: experiments and analysis tasks.
+- `Data/`: project-level shared data that can be reused by multiple experiments.
+- `Writing/`: writing projects, manuscripts, and frozen copies of cited figures/tables.
 
-- `ResearchFlow: Init Project`（`researchflow.initProject`）
-- `ResearchFlow: Recommend Citations`（`researchflow.recommendCitations`）
-- `ResearchFlow: Draft Caption`（`researchflow.draftCaption`）
+Project-level `Figures/` and `Tables/` are no longer part of the required architecture. Experiment outputs should stay with the experiment that produced them:
 
-## 侧边栏视图（Tree View）
+```text
+Analysis/
+  experiment-name/
+    scripts/
+    figures/
+    tables/
+```
 
-`ResearchFlow` 活动栏容器下包含 `Projects` 视图（`researchflow.projects`），当前显示占位节点：
+When a writing item cites a figure or table, copy or publish that artifact into the relevant writing folder so the manuscript references a frozen version:
 
-- Active Project
-- Papers
-- Figures
+```text
+Writing/
+  paper-name/
+    figures/
+    tables/
+```
 
-## 本地后端地址（占位）
+`Data/` remains a project-level directory because datasets are often shared by several experiments and can be large enough that copying them per experiment is undesirable.
 
-- `http://127.0.0.1:27182`
+## Current Features
 
-## 如何构建与运行
+- Project initialization through `ResearchFlow: Init Project`.
+- Project, References, Analysis, Writing, Data, and Chat views in the ResearchFlow activity bar.
+- Analysis experiment creation with per-experiment `scripts`, `figures`, and `tables` groups.
+- Data import, folder creation, info sidecar opening, move, delete, and drag-and-drop organization under `Data/`.
+- Placeholder backend client for future ResearchFlow Core integration.
 
-1. 安装依赖：
+## Commands
+
+- `ResearchFlow: Init Project` (`researchflow.initProject`)
+- `ResearchFlow: Recommend Citations` (`researchflow.recommendCitations`)
+- `ResearchFlow: Draft Caption` (`researchflow.draftCaption`)
+- `ResearchFlow: Data Import Data` (`researchflow.data.importData`)
+- `ResearchFlow: Data New Data Folder` (`researchflow.data.newDataFolder`)
+- `ResearchFlow: Open Data Info` (`researchflow.data.openDataInfo`)
+- `ResearchFlow: Move Data File` (`researchflow.data.moveData`)
+- `ResearchFlow: Delete Data File` (`researchflow.data.deleteData`)
+
+## Build And Run
+
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. 编译：
+2. Compile:
 
 ```bash
 npm run compile
 ```
 
-3. 启动扩展调试：
+3. Start extension debugging:
 
-- 在 VSCode 打开本项目目录
-- 按 `F5`（或运行 `.vscode/launch.json` 中的 `Run ResearchFlow Extension`）
-- 会打开一个新的 Extension Development Host 窗口，插件在该窗口中运行
+- Open this repository in VS Code.
+- Press `F5` or run the extension launch configuration.
+- A new Extension Development Host window opens with ResearchFlow active.
 
-## 文档
+## Notes
 
-- 中文骨架说明（模块职责与调用关系）：
-  - `docs/skeleton-overview.zh-CN.md`
-
-## 说明
-
-- 当前后端接口调用为占位实现
-- 本阶段刻意不实现 AI/业务逻辑
-- 除 ResearchFlow Chat 外，主体导航仍使用 Tree View；Chat 使用 Webview View。VS Code 不允许扩展默认直接贡献到 Secondary Sidebar，可首次运行 `ResearchFlow: Move Chat to Right Sidebar`，并在 VS Code 的移动视图菜单中选择 Secondary Sidebar；VS Code 会记住该布局。
+- Existing project-level `Figures/` and `Tables/` directories are not deleted automatically.
+- The local backend URL is currently a placeholder: `http://127.0.0.1:27182`.
