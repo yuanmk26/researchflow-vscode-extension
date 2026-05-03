@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { ResearchFlowAgentService } from "../services/researchFlowAgentService";
+import { ResearchFlowAgentContextItem, ResearchFlowAgentService } from "../services/researchFlowAgentService";
 
 type ChatRole = "user" | "assistant";
 
@@ -9,12 +9,35 @@ interface WebviewSendMessage {
   text: string;
 }
 
-type WebviewInboundMessage = WebviewSendMessage;
+interface WebviewAddCurrentFile {
+  type: "addCurrentFile";
+}
+
+interface WebviewAddFiles {
+  type: "addFiles";
+}
+
+interface WebviewRemoveContext {
+  type: "removeContext";
+  path: string;
+}
+
+interface WebviewClearContext {
+  type: "clearContext";
+}
+
+type WebviewInboundMessage =
+  | WebviewSendMessage
+  | WebviewAddCurrentFile
+  | WebviewAddFiles
+  | WebviewRemoveContext
+  | WebviewClearContext;
 
 export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "researchflow.chat";
 
   private view?: vscode.WebviewView;
+  private readonly contextItems: ResearchFlowAgentContextItem[] = [];
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
@@ -32,7 +55,20 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       if (message.type === "sendMessage") {
         void this.handleSendMessage(message.text);
       }
+      if (message.type === "addCurrentFile") {
+        void this.handleAddCurrentFile();
+      }
+      if (message.type === "addFiles") {
+        void this.handleAddFiles();
+      }
+      if (message.type === "removeContext") {
+        this.removeContextItem(message.path);
+      }
+      if (message.type === "clearContext") {
+        this.clearContextItems();
+      }
     });
+    this.postContextItems();
   }
 
   private async handleSendMessage(text: string): Promise<void> {
@@ -45,7 +81,7 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
     this.postSetBusy(true);
 
     try {
-      const reply = await this.agentService.sendMessage(trimmedText);
+      const reply = await this.agentService.sendMessage(trimmedText, this.contextItems);
       this.postAppendMessage("assistant", reply.text);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -53,6 +89,72 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
     } finally {
       this.postSetBusy(false);
     }
+  }
+
+  private async handleAddCurrentFile(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      this.postError("No active editor file to add as context.");
+      return;
+    }
+
+    this.addContextItem(editor.document.uri);
+  }
+
+  private async handleAddFiles(): Promise<void> {
+    const selectedFiles = await vscode.window.showOpenDialog({
+      title: "Add files as ResearchFlow chat context",
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: true,
+      openLabel: "Add Context"
+    });
+
+    if (!selectedFiles) {
+      return;
+    }
+
+    for (const uri of selectedFiles) {
+      this.addContextItem(uri);
+    }
+  }
+
+  private addContextItem(uri: vscode.Uri): void {
+    if (uri.scheme !== "file") {
+      this.postError("Only local files can be added as chat context.");
+      return;
+    }
+
+    const path = uri.fsPath;
+    if (this.contextItems.some((item) => item.path === path)) {
+      return;
+    }
+
+    this.contextItems.push({
+      label: vscode.workspace.asRelativePath(uri, false),
+      path,
+      kind: "file"
+    });
+    this.postContextItems();
+  }
+
+  private removeContextItem(path: string): void {
+    const index = this.contextItems.findIndex((item) => item.path === path);
+    if (index < 0) {
+      return;
+    }
+
+    this.contextItems.splice(index, 1);
+    this.postContextItems();
+  }
+
+  private clearContextItems(): void {
+    if (this.contextItems.length === 0) {
+      return;
+    }
+
+    this.contextItems.splice(0, this.contextItems.length);
+    this.postContextItems();
   }
 
   private postAppendMessage(role: ChatRole, text: string): void {
@@ -65,6 +167,10 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
 
   private postError(message: string): void {
     void this.view?.webview.postMessage({ type: "error", message });
+  }
+
+  private postContextItems(): void {
+    void this.view?.webview.postMessage({ type: "setContextItems", items: this.contextItems });
   }
 
   private getHtml(webview: vscode.Webview): string {
@@ -156,20 +262,60 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       border-top: 1px solid var(--vscode-panel-border);
       padding: 10px;
       display: flex;
+      flex-direction: column;
       gap: 8px;
-      align-items: flex-end;
       background: var(--vscode-sideBar-background);
+    }
+
+    .context-bar,
+    .input-row {
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .context-bar {
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .input-row {
+      align-items: flex-end;
+    }
+
+    .context-label {
+      color: var(--vscode-descriptionForeground);
+      font-size: 11px;
+    }
+
+    .context-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 220px;
+      min-height: 24px;
+      padding: 2px 6px;
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 4px;
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      gap: 4px;
+    }
+
+    .context-chip span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     textarea {
       flex: 1;
       min-width: 0;
-      min-height: 38px;
-      max-height: 120px;
+      min-height: 78px;
+      max-height: 180px;
       resize: vertical;
-      padding: 7px 8px;
+      padding: 10px 11px;
       border: 1px solid var(--vscode-input-border);
-      border-radius: 4px;
+      border-radius: 6px;
       outline: none;
       color: var(--vscode-input-foreground);
       background: var(--vscode-input-background);
@@ -193,6 +339,22 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       cursor: pointer;
     }
 
+    .secondary-button,
+    .icon-button {
+      color: var(--vscode-button-secondaryForeground);
+      background: var(--vscode-button-secondaryBackground);
+    }
+
+    .secondary-button:hover:not(:disabled),
+    .icon-button:hover:not(:disabled) {
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    .icon-button {
+      min-height: 22px;
+      padding: 0 6px;
+    }
+
     button:hover:not(:disabled) {
       background: var(--vscode-button-hoverBackground);
     }
@@ -208,8 +370,17 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
     <div id="empty" class="empty">Ask ResearchFlow about your project, data, analysis, or writing workflow.</div>
   </main>
   <form id="composer" class="composer">
-    <textarea id="input" rows="1" aria-label="Message ResearchFlow" placeholder="Message ResearchFlow"></textarea>
-    <button id="send" type="submit">Send</button>
+    <div class="context-bar">
+      <span class="context-label">Context</span>
+      <button id="addCurrentFile" class="secondary-button" type="button">Current File</button>
+      <button id="addFiles" class="secondary-button" type="button">Add File</button>
+      <button id="clearContext" class="secondary-button" type="button" disabled>Clear</button>
+      <div id="contextItems" class="context-bar"></div>
+    </div>
+    <div class="input-row">
+      <textarea id="input" rows="3" aria-label="Message ResearchFlow" placeholder="Message ResearchFlow"></textarea>
+      <button id="send" type="submit">Send</button>
+    </div>
   </form>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
@@ -218,6 +389,10 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
     const composer = document.getElementById("composer");
     const input = document.getElementById("input");
     const send = document.getElementById("send");
+    const addCurrentFile = document.getElementById("addCurrentFile");
+    const addFiles = document.getElementById("addFiles");
+    const clearContext = document.getElementById("clearContext");
+    const contextItems = document.getElementById("contextItems");
     let busy = false;
 
     composer.addEventListener("submit", (event) => {
@@ -232,6 +407,18 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       }
     });
 
+    addCurrentFile.addEventListener("click", () => {
+      vscode.postMessage({ type: "addCurrentFile" });
+    });
+
+    addFiles.addEventListener("click", () => {
+      vscode.postMessage({ type: "addFiles" });
+    });
+
+    clearContext.addEventListener("click", () => {
+      vscode.postMessage({ type: "clearContext" });
+    });
+
     window.addEventListener("message", (event) => {
       const message = event.data;
       if (message.type === "appendMessage") {
@@ -242,6 +429,9 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       }
       if (message.type === "error") {
         appendError(message.message);
+      }
+      if (message.type === "setContextItems") {
+        renderContextItems(message.items || []);
       }
     });
 
@@ -288,6 +478,32 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       send.textContent = busy ? "Sending" : "Send";
       if (!busy) {
         input.focus();
+      }
+    }
+
+    function renderContextItems(items) {
+      contextItems.textContent = "";
+      clearContext.disabled = items.length === 0;
+
+      for (const item of items) {
+        const chip = document.createElement("span");
+        chip.className = "context-chip";
+        chip.title = item.path;
+
+        const label = document.createElement("span");
+        label.textContent = item.label;
+
+        const remove = document.createElement("button");
+        remove.className = "icon-button";
+        remove.type = "button";
+        remove.setAttribute("aria-label", "Remove " + item.label);
+        remove.textContent = "x";
+        remove.addEventListener("click", () => {
+          vscode.postMessage({ type: "removeContext", path: item.path });
+        });
+
+        chip.append(label, remove);
+        contextItems.append(chip);
       }
     }
 
