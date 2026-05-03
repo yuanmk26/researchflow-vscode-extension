@@ -136,7 +136,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const writingOpenObjectDisposable = vscode.commands.registerCommand(
     "researchflow.writing.openObject",
-    createOpenWritingObjectCommand()
+    createOpenWritingObjectCommand(context.globalStorageUri)
   );
   const writingSetTemplateDisposable = vscode.commands.registerCommand(
     "researchflow.writing.setTemplate",
