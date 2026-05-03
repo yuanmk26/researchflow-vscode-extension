@@ -46,7 +46,10 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.references",
     referencesTreeProvider
   );
-  const analysisTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.analysis", analysisTreeProvider);
+  const analysisTreeView = vscode.window.createTreeView("researchflow.analysis", {
+    treeDataProvider: analysisTreeProvider,
+    canSelectMany: true
+  });
   const writingTreeDisposable = vscode.window.registerTreeDataProvider("researchflow.writing", writingTreeProvider);
   const chatViewDisposable = vscode.window.registerWebviewViewProvider(
     ResearchFlowChatViewProvider.viewType,
@@ -117,7 +120,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const analysisDeleteFileDisposable = vscode.commands.registerCommand(
     "researchflow.analysis.deleteFile",
-    createAnalysisDeleteFileCommand(analysisTreeProvider)
+    createAnalysisDeleteFileCommand(analysisTreeProvider, () => analysisTreeView.selection)
   );
   const dataImportDataDisposable = vscode.commands.registerCommand(
     "researchflow.data.importData",
@@ -162,7 +165,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     projectsTreeDisposable,
     referencesTreeDisposable,
-    analysisTreeDisposable,
+    analysisTreeView,
     writingTreeDisposable,
     chatViewDisposable,
     dataTreeView,
