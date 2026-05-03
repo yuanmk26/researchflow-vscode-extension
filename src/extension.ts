@@ -5,7 +5,12 @@ import { createAnalysisDeleteFileCommand } from "./commands/deleteAnalysisFile";
 import { createDeleteDataCommand } from "./commands/deleteData";
 import { createAnalysisNewExperimentCommand } from "./commands/createAnalysisExperiment";
 import { createAnalysisNewScriptCommand } from "./commands/createAnalysisScript";
+import {
+  createWritingAddAgentReferenceDocCommand,
+  createWritingSetTemplateCommand
+} from "./commands/configureWritingObject";
 import { createDataFolderCommand } from "./commands/createDataFolder";
+import { createWritingNewObjectCommand } from "./commands/createWritingObject";
 import { createDraftCaptionCommand } from "./commands/draftCaption";
 import { createImportDataCommand } from "./commands/importData";
 import { createInitProjectCommand } from "./commands/initProject";
@@ -13,6 +18,7 @@ import { createMoveDataCommand } from "./commands/moveData";
 import { createOpenAnalysisTaskCommand, registerAnalysisTaskLastActiveTracking } from "./commands/openAnalysisTask";
 import { createOpenDataInfoCommand } from "./commands/openDataInfo";
 import { createOpenProjectDirectoryCommand } from "./commands/openProjectDirectory";
+import { createOpenWritingObjectCommand } from "./commands/openWritingObject";
 import { createRenameProjectCommand } from "./commands/renameProject";
 import { createRecommendCitationsCommand } from "./commands/recommendCitations";
 import { createSelectProjectFolderCommand } from "./commands/selectProjectFolder";
@@ -33,7 +39,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const projectTreeProvider = new ProjectTreeProvider(projectManager);
   const referencesTreeProvider = new ReferencesTreeProvider();
   const analysisTreeProvider = new AnalysisTreeProvider(projectManager);
-  const writingTreeProvider = new WritingTreeProvider();
+  const writingTreeProvider = new WritingTreeProvider(projectManager);
   const dataTreeProvider = new DataTreeProvider(projectManager);
   const dataTreeDndController = new DataTreeDragAndDropController(dataTreeProvider);
   const researchFlowChatViewProvider = new ResearchFlowChatViewProvider(
@@ -67,6 +73,7 @@ export function activate(context: vscode.ExtensionContext): void {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
       analysisTreeProvider.refresh();
+      writingTreeProvider.refresh();
       dataTreeProvider.refresh();
     }
   );
@@ -76,6 +83,7 @@ export function activate(context: vscode.ExtensionContext): void {
       await createInitProjectCommand(projectManager)();
       projectTreeProvider.refresh();
       analysisTreeProvider.refresh();
+      writingTreeProvider.refresh();
       dataTreeProvider.refresh();
     }
   );
@@ -122,6 +130,22 @@ export function activate(context: vscode.ExtensionContext): void {
     "researchflow.analysis.deleteFile",
     createAnalysisDeleteFileCommand(analysisTreeProvider, () => analysisTreeView.selection)
   );
+  const writingNewObjectDisposable = vscode.commands.registerCommand(
+    "researchflow.writing.newObject",
+    createWritingNewObjectCommand(writingTreeProvider)
+  );
+  const writingOpenObjectDisposable = vscode.commands.registerCommand(
+    "researchflow.writing.openObject",
+    createOpenWritingObjectCommand()
+  );
+  const writingSetTemplateDisposable = vscode.commands.registerCommand(
+    "researchflow.writing.setTemplate",
+    createWritingSetTemplateCommand(writingTreeProvider)
+  );
+  const writingAddAgentReferenceDocDisposable = vscode.commands.registerCommand(
+    "researchflow.writing.addAgentReferenceDoc",
+    createWritingAddAgentReferenceDocCommand(writingTreeProvider)
+  );
   const dataImportDataDisposable = vscode.commands.registerCommand(
     "researchflow.data.importData",
     createImportDataCommand(dataTreeProvider)
@@ -153,11 +177,15 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   );
   const analysisWatcher = vscode.workspace.createFileSystemWatcher("**/Analysis/**");
+  const writingWatcher = vscode.workspace.createFileSystemWatcher("**/Writing/**");
   const dataWatcher = vscode.workspace.createFileSystemWatcher("**/Data/**");
   const analysisLastActiveTrackingDisposable = registerAnalysisTaskLastActiveTracking(context.workspaceState);
   const analysisWatcherCreateDisposable = analysisWatcher.onDidCreate(() => analysisTreeProvider.refresh());
   const analysisWatcherChangeDisposable = analysisWatcher.onDidChange(() => analysisTreeProvider.refresh());
   const analysisWatcherDeleteDisposable = analysisWatcher.onDidDelete(() => analysisTreeProvider.refresh());
+  const writingWatcherCreateDisposable = writingWatcher.onDidCreate(() => writingTreeProvider.refresh());
+  const writingWatcherChangeDisposable = writingWatcher.onDidChange(() => writingTreeProvider.refresh());
+  const writingWatcherDeleteDisposable = writingWatcher.onDidDelete(() => writingTreeProvider.refresh());
   const dataWatcherCreateDisposable = dataWatcher.onDidCreate(() => dataTreeProvider.refresh());
   const dataWatcherChangeDisposable = dataWatcher.onDidChange(() => dataTreeProvider.refresh());
   const dataWatcherDeleteDisposable = dataWatcher.onDidDelete(() => dataTreeProvider.refresh());
@@ -181,6 +209,10 @@ export function activate(context: vscode.ExtensionContext): void {
     analysisNewExperimentDisposable,
     analysisDeleteExperimentDisposable,
     analysisDeleteFileDisposable,
+    writingNewObjectDisposable,
+    writingOpenObjectDisposable,
+    writingSetTemplateDisposable,
+    writingAddAgentReferenceDocDisposable,
     dataImportDataDisposable,
     dataNewDataFolderDisposable,
     dataOpenDataInfoDisposable,
@@ -189,11 +221,15 @@ export function activate(context: vscode.ExtensionContext): void {
     openChatDisposable,
     moveChatToRightSidebarDisposable,
     analysisWatcher,
+    writingWatcher,
     dataWatcher,
     analysisLastActiveTrackingDisposable,
     analysisWatcherCreateDisposable,
     analysisWatcherChangeDisposable,
     analysisWatcherDeleteDisposable,
+    writingWatcherCreateDisposable,
+    writingWatcherChangeDisposable,
+    writingWatcherDeleteDisposable,
     dataWatcherCreateDisposable,
     dataWatcherChangeDisposable,
     dataWatcherDeleteDisposable

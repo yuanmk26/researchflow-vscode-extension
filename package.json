@@ -17,6 +17,10 @@
     "onCommand:researchflow.analysis.newExperiment",
     "onCommand:researchflow.analysis.deleteExperiment",
     "onCommand:researchflow.analysis.deleteFile",
+    "onCommand:researchflow.writing.newObject",
+    "onCommand:researchflow.writing.openObject",
+    "onCommand:researchflow.writing.setTemplate",
+    "onCommand:researchflow.writing.addAgentReferenceDoc",
     "onCommand:researchflow.data.importData",
     "onCommand:researchflow.data.newDataFolder",
     "onCommand:researchflow.data.openDataInfo",
@@ -91,6 +95,26 @@
         "command": "researchflow.analysis.deleteFile",
         "title": "ResearchFlow: Delete Analysis File",
         "icon": "$(trash)"
+      },
+      {
+        "command": "researchflow.writing.newObject",
+        "title": "ResearchFlow: Writing New Object",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "researchflow.writing.openObject",
+        "title": "ResearchFlow: Open Writing Object",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "researchflow.writing.setTemplate",
+        "title": "ResearchFlow: Set Writing Template",
+        "icon": "$(symbol-file)"
+      },
+      {
+        "command": "researchflow.writing.addAgentReferenceDoc",
+        "title": "ResearchFlow: Add Agent Reference Document",
+        "icon": "$(references)"
       },
       {
         "command": "researchflow.data.importData",
@@ -183,6 +207,11 @@
           "group": "navigation@1"
         },
         {
+          "command": "researchflow.writing.newObject",
+          "when": "view == researchflow.writing",
+          "group": "navigation@1"
+        },
+        {
           "command": "researchflow.data.importData",
           "when": "view == researchflow.data",
           "group": "navigation@1"
@@ -263,6 +292,21 @@
           "command": "researchflow.analysis.newExperiment",
           "when": "view == researchflow.analysis && viewItem == analysisNewExperimentAction",
           "group": "navigation"
+        },
+        {
+          "command": "researchflow.writing.openObject",
+          "when": "view == researchflow.writing && viewItem == writingObject",
+          "group": "inline"
+        },
+        {
+          "command": "researchflow.writing.setTemplate",
+          "when": "view == researchflow.writing && viewItem == writingObject",
+          "group": "navigation@1"
+        },
+        {
+          "command": "researchflow.writing.addAgentReferenceDoc",
+          "when": "view == researchflow.writing && viewItem == writingObject",
+          "group": "navigation@2"
         },
         {
           "command": "researchflow.data.moveData",
