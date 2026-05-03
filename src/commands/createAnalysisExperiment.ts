@@ -38,11 +38,10 @@ export function createAnalysisNewExperimentCommand(
     const experimentName = await vscode.window.showInputBox({
       prompt: "Enter experiment name",
       placeHolder: "experiment-01",
-      ignoreFocusOut: true,
       validateInput: (value: string): string | undefined => validateExperimentName(value)
     });
 
-    if (!experimentName) {
+    if (experimentName === undefined) {
       return;
     }
 

@@ -55,11 +55,10 @@ export function createDataFolderCommand(
     const folderPath = await vscode.window.showInputBox({
       prompt: "Enter folder path relative to Data/",
       placeHolder: "raw or processed/2026-04",
-      ignoreFocusOut: true,
       validateInput: (value: string): string | undefined => normalizeRelativeFolderPath(value).error
     });
 
-    if (!folderPath) {
+    if (folderPath === undefined) {
       return;
     }
 

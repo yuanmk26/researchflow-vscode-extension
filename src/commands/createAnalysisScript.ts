@@ -71,10 +71,12 @@ function resolveTaskUriFromTarget(target?: vscode.Uri | AnalysisTreeItem): vscod
   return undefined;
 }
 
-async function pickTaskUri(analysisRootUri: vscode.Uri): Promise<vscode.Uri | undefined> {
+type TaskPickResult = { status: "picked"; uri: vscode.Uri } | { status: "cancelled" } | { status: "empty" };
+
+async function pickTaskUri(analysisRootUri: vscode.Uri): Promise<TaskPickResult> {
   const tasks = await listTaskUris(analysisRootUri);
   if (tasks.length === 0) {
-    return undefined;
+    return { status: "empty" };
   }
 
   const picked = await vscode.window.showQuickPick(
@@ -82,7 +84,11 @@ async function pickTaskUri(analysisRootUri: vscode.Uri): Promise<vscode.Uri | un
     { placeHolder: "Select an analysis task" }
   );
 
-  return picked?.uri;
+  if (!picked) {
+    return { status: "cancelled" };
+  }
+
+  return { status: "picked", uri: picked.uri };
 }
 
 export function createAnalysisNewScriptCommand(
@@ -97,7 +103,15 @@ export function createAnalysisNewScriptCommand(
 
     let taskUri = resolveTaskUriFromTarget(target);
     if (!taskUri) {
-      taskUri = await pickTaskUri(analysisRoot.uri);
+      const pickResult = await pickTaskUri(analysisRoot.uri);
+      if (pickResult.status === "cancelled") {
+        return;
+      }
+      if (pickResult.status === "empty") {
+        void vscode.window.showWarningMessage("No analysis task available. Create a task folder in Analysis/ first.");
+        return;
+      }
+      taskUri = pickResult.uri;
     }
 
     if (!taskUri) {
@@ -108,10 +122,9 @@ export function createAnalysisNewScriptCommand(
     const scriptPath = await vscode.window.showInputBox({
       prompt: "Enter script file path relative to scripts/",
       placeHolder: "main.py or data/plot.py",
-      ignoreFocusOut: true,
       validateInput: (value: string): string | undefined => normalizeRelativePath(value).error
     });
-    if (!scriptPath) {
+    if (scriptPath === undefined) {
       return;
     }
 
