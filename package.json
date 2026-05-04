@@ -37,20 +37,6 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "configuration": {
-      "title": "ResearchFlow",
-      "properties": {
-        "researchflow.agent.runtime": {
-          "type": "string",
-          "enum": [
-            "mock",
-            "pi"
-          ],
-          "default": "mock",
-          "description": "Selects the ResearchFlow Agent runtime. Use mock for the compile-safe local scaffold or pi for the local pi SDK worker."
-        }
-      }
-    },
     "commands": [
       {
         "command": "researchflow.initProject",

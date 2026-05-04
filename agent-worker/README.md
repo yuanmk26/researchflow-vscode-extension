@@ -1,6 +1,6 @@
 # ResearchFlow Agent Worker
 
-This directory contains the local ResearchFlow Agent worker package. The VS Code extension can launch this worker when `researchflow.agent.runtime` is set to `pi`; the default runtime remains `mock`.
+This directory contains the local ResearchFlow Agent worker package. The VS Code extension launches this worker for ResearchFlow Agent tasks.
 
 ## Intended Role
 
