@@ -1,0 +1,16 @@
+{
+  "name": "researchflow-agent-worker",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./out/index.js",
+  "scripts": {
+    "compile": "tsc -p ./"
+  },
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "^0.72.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "typescript": "^5.5.4"
+  }
+}

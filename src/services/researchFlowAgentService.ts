@@ -3,12 +3,17 @@ import * as vscode from "vscode";
 import { AgentRuntime } from "../agent/agentRuntime";
 import { AgentContextItem, AgentPatchApproval, AgentTask, AgentTaskEvent } from "../agent/agentTypes";
 import { createDefaultBoundaryPolicy } from "../agent/boundaryPolicy";
+import { LocalAgentWorkerClient } from "../agent/localAgentWorkerClient";
 import { MockAgentRuntime } from "../agent/mockAgentRuntime";
 
 export type ResearchFlowAgentContextItem = AgentContextItem;
 
 export class ResearchFlowAgentService implements vscode.Disposable {
-  public constructor(private readonly runtime: AgentRuntime & vscode.Disposable = new MockAgentRuntime()) {}
+  private readonly runtime: AgentRuntime & vscode.Disposable;
+
+  public constructor(extensionUri?: vscode.Uri, runtime?: AgentRuntime & vscode.Disposable) {
+    this.runtime = runtime ?? createConfiguredRuntime(extensionUri);
+  }
 
   public async startTask(
     text: string,
@@ -47,4 +52,19 @@ export class ResearchFlowAgentService implements vscode.Disposable {
   public dispose(): void {
     this.runtime.dispose();
   }
+}
+
+function createConfiguredRuntime(extensionUri?: vscode.Uri): AgentRuntime & vscode.Disposable {
+  const configuredRuntime = vscode.workspace
+    .getConfiguration("researchflow.agent")
+    .get<"mock" | "pi">("runtime", "mock");
+
+  if (configuredRuntime === "pi") {
+    if (!extensionUri) {
+      throw new Error("ResearchFlow Agent pi runtime requires an extension URI.");
+    }
+    return new LocalAgentWorkerClient(extensionUri);
+  }
+
+  return new MockAgentRuntime();
 }

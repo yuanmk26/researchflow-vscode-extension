@@ -35,7 +35,7 @@ import { WritingTreeProvider } from "./views/writingTreeProvider";
 export function activate(context: vscode.ExtensionContext): void {
   const projectManager = new ProjectManager();
   const coreClient = new CoreClient();
-  const researchFlowAgentService = new ResearchFlowAgentService();
+  const researchFlowAgentService = new ResearchFlowAgentService(context.extensionUri);
   const projectTreeProvider = new ProjectTreeProvider(projectManager);
   const referencesTreeProvider = new ReferencesTreeProvider();
   const analysisTreeProvider = new AnalysisTreeProvider(projectManager);

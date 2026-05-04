@@ -1,6 +1,6 @@
 # ResearchFlow Agent Worker
 
-This directory is reserved for the phase-two local agent worker. Phase one keeps the extension on a compile-safe mock runtime and does not install pi SDK dependencies yet.
+This directory contains the local ResearchFlow Agent worker package. The VS Code extension can launch this worker when `researchflow.agent.runtime` is set to `pi`; the default runtime remains `mock`.
 
 ## Intended Role
 
@@ -17,7 +17,7 @@ VS Code Extension
 
 The extension remains responsible for UI, VS Code APIs, approval prompts, and applying approved changes. The worker remains responsible for pi sessions, tool execution, subagent orchestration, event mapping, and policy checks.
 
-## Planned Structure
+## Structure
 
 ```text
 agent-worker/
@@ -40,9 +40,9 @@ agent-worker/
       writePolicy.ts
 ```
 
-## Protocol Direction
+## Protocol
 
-The first real worker should use newline-delimited JSON-RPC over stdio. Messages should be ResearchFlow-owned protocol objects, not pi SDK types.
+The worker uses newline-delimited JSON-RPC over stdio. Messages are ResearchFlow-owned protocol objects, not pi SDK types.
 
 Core requests:
 
@@ -65,7 +65,7 @@ Core notifications:
 
 The worker must treat extension-provided boundaries as policy, then re-check them locally before reading, writing, or running commands.
 
-Phase two should keep these defaults:
+The worker keeps these defaults:
 
 - Read tools can run automatically.
 - Patch application requires approval.
