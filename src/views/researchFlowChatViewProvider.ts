@@ -44,6 +44,10 @@ interface WebviewCancelTask {
   taskId: string;
 }
 
+interface WebviewConfigureApiKey {
+  type: "configureApiKey";
+}
+
 type WebviewInboundMessage =
   | WebviewSendMessage
   | WebviewAddCurrentFile
@@ -52,7 +56,8 @@ type WebviewInboundMessage =
   | WebviewClearContext
   | WebviewApprovePatch
   | WebviewRejectPatch
-  | WebviewCancelTask;
+  | WebviewCancelTask
+  | WebviewConfigureApiKey;
 
 export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = "researchflow.chat";
@@ -99,6 +104,9 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider,
       if (message.type === "cancelTask") {
         void this.handleCancelTask(message.taskId);
       }
+      if (message.type === "configureApiKey") {
+        void this.handleConfigureApiKey();
+      }
     });
     this.postContextItems();
   }
@@ -126,8 +134,20 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      this.postError(`ResearchFlow Agent failed: ${message}`);
+      this.postError(formatAgentError(message));
       this.postSetBusy(false);
+    }
+  }
+
+  private async handleConfigureApiKey(): Promise<void> {
+    try {
+      const message = await this.agentService.configureDeepSeekApiKey();
+      if (message) {
+        this.postAppendMessage("assistant", message);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      this.postError(`Failed to configure DeepSeek API key: ${message}`);
     }
   }
 
@@ -150,7 +170,7 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider,
   }
 
   private handleAgentTaskEvent(event: AgentTaskEvent): void {
-    this.postTaskEvent(event);
+    this.postTaskEvent(event.type === "error" ? { ...event, message: formatAgentError(event.message) } : event);
     if (event.type === "status" && isTerminalStatus(event.status)) {
       this.activeTaskId = undefined;
       this.postSetBusy(false);
@@ -474,6 +494,7 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider,
   <form id="composer" class="composer">
     <div class="context-bar">
       <span class="context-label">Context</span>
+      <button id="configureApiKey" class="secondary-button" type="button">Configure API Key</button>
       <button id="addCurrentFile" class="secondary-button" type="button">Current File</button>
       <button id="addFiles" class="secondary-button" type="button">Add File</button>
       <button id="clearContext" class="secondary-button" type="button" disabled>Clear</button>
@@ -493,6 +514,7 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider,
     const input = document.getElementById("input");
     const send = document.getElementById("send");
     const cancelTask = document.getElementById("cancelTask");
+    const configureApiKey = document.getElementById("configureApiKey");
     const addCurrentFile = document.getElementById("addCurrentFile");
     const addFiles = document.getElementById("addFiles");
     const clearContext = document.getElementById("clearContext");
@@ -516,6 +538,10 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider,
       if (activeTaskId) {
         vscode.postMessage({ type: "cancelTask", taskId: activeTaskId });
       }
+    });
+
+    configureApiKey.addEventListener("click", () => {
+      vscode.postMessage({ type: "configureApiKey" });
     });
 
     addCurrentFile.addEventListener("click", () => {
@@ -753,4 +779,12 @@ function getNonce(): string {
 
 function isTerminalStatus(status: string): boolean {
   return status === "completed" || status === "failed" || status === "cancelled";
+}
+
+function formatAgentError(message: string): string {
+  if (message.includes("No API key found") || message.includes("DeepSeek API key is not configured")) {
+    return `${message}\n\nClick "Configure API Key" in ResearchFlow Chat to set your DeepSeek API key and model.`;
+  }
+
+  return `ResearchFlow Agent failed: ${message}`;
 }

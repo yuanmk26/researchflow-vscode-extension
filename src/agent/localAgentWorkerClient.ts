@@ -24,6 +24,7 @@ type PendingRequest = {
 export class LocalAgentWorkerClient implements AgentRuntime, vscode.Disposable {
   private child?: childProcess.ChildProcessWithoutNullStreams;
   private nextRequestId = 1;
+  private workerEnvironment: NodeJS.ProcessEnv = {};
   private readonly pendingRequests = new Map<number, PendingRequest>();
   private readonly taskEmitters = new Map<string, vscode.EventEmitter<AgentTaskEvent>>();
   private readonly disposables: vscode.Disposable[] = [];
@@ -46,6 +47,15 @@ export class LocalAgentWorkerClient implements AgentRuntime, vscode.Disposable {
     await this.sendRequest<void, AgentApprovePatchParams>("agent.approvePatch", { taskId, patchId, approval });
   }
 
+  public setWorkerEnvironment(environment: NodeJS.ProcessEnv): void {
+    if (sameEnvironment(this.workerEnvironment, environment)) {
+      return;
+    }
+
+    this.workerEnvironment = { ...environment };
+    this.restartWorker();
+  }
+
   public dispose(): void {
     for (const request of this.pendingRequests.values()) {
       request.reject(new Error("ResearchFlow Agent worker disposed."));
@@ -62,8 +72,7 @@ export class LocalAgentWorkerClient implements AgentRuntime, vscode.Disposable {
     }
     this.disposables.splice(0, this.disposables.length);
 
-    this.child?.kill();
-    this.child = undefined;
+    this.restartWorker();
   }
 
   private async sendRequest<TResult, TParams>(
@@ -103,6 +112,10 @@ export class LocalAgentWorkerClient implements AgentRuntime, vscode.Disposable {
     const workerPath = path.join(this.extensionUri.fsPath, "agent-worker", "out", "index.js");
     const child = childProcess.spawn(process.execPath, [workerPath], {
       cwd: this.extensionUri.fsPath,
+      env: {
+        ...process.env,
+        ...this.workerEnvironment
+      },
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true
     });
@@ -184,6 +197,11 @@ export class LocalAgentWorkerClient implements AgentRuntime, vscode.Disposable {
     }
   }
 
+  private restartWorker(): void {
+    this.child?.kill();
+    this.child = undefined;
+  }
+
   private getTaskEmitter(taskId: string): vscode.EventEmitter<AgentTaskEvent> {
     let emitter = this.taskEmitters.get(taskId);
     if (!emitter) {
@@ -193,4 +211,14 @@ export class LocalAgentWorkerClient implements AgentRuntime, vscode.Disposable {
 
     return emitter;
   }
+}
+
+function sameEnvironment(left: NodeJS.ProcessEnv, right: NodeJS.ProcessEnv): boolean {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  return leftKeys.every((key) => left[key] === right[key]);
 }

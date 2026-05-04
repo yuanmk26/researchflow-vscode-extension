@@ -29,6 +29,7 @@ export interface AgentTaskRequest {
   activeFile?: string;
   contextItems: readonly AgentContextItem[];
   boundary: AgentBoundaryPolicy;
+  model?: AgentModelSelection;
 }
 
 export interface AgentTask {
@@ -54,3 +55,8 @@ export type AgentTaskEvent =
   | { type: "error"; taskId: string; message: string };
 
 export type AgentPatchApproval = "approved" | "rejected";
+
+export interface AgentModelSelection {
+  provider: "deepseek";
+  id: string;
+}

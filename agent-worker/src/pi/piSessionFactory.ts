@@ -10,12 +10,15 @@ export async function createPiSession(request: AgentTaskRequest): Promise<unknow
   }
 
   const authStorage = createAuthStorage(pi);
+  configureRuntimeApiKey(authStorage);
   const modelRegistry = createModelRegistry(pi, authStorage);
   const sessionManager = createInMemorySessionManager(pi);
   const settingsManager = createInMemorySettingsManager(pi);
+  const model = resolveDeepSeekModel(modelRegistry, request.model?.id);
 
   const result = await createAgentSession({
     cwd: request.workspaceRoot,
+    model,
     authStorage,
     modelRegistry,
     sessionManager,
@@ -41,9 +44,33 @@ function createAuthStorage(pi: unknown): unknown {
   return authStorage?.create?.();
 }
 
+function configureRuntimeApiKey(authStorage: unknown): void {
+  const deepSeekApiKey = process.env.DEEPSEEK_API_KEY?.trim();
+  if (!deepSeekApiKey) {
+    return;
+  }
+
+  const candidate = authStorage as { setRuntimeApiKey?: (provider: string, apiKey: string) => void };
+  candidate.setRuntimeApiKey?.("deepseek", deepSeekApiKey);
+}
+
 function createModelRegistry(pi: unknown, authStorage: unknown): unknown {
   const modelRegistry = (pi as { ModelRegistry?: { create?: (authStorage: unknown) => unknown } }).ModelRegistry;
   return modelRegistry?.create?.(authStorage);
+}
+
+function resolveDeepSeekModel(modelRegistry: unknown, modelId: string | undefined): unknown {
+  if (!modelId) {
+    return undefined;
+  }
+
+  const candidate = modelRegistry as { find?: (provider: string, modelId: string) => unknown };
+  const model = candidate.find?.("deepseek", modelId);
+  if (!model) {
+    throw new Error(`DeepSeek model "${modelId}" was not found. Check the model id in Configure API Key.`);
+  }
+
+  return model;
 }
 
 function createInMemorySessionManager(pi: unknown): unknown {
