@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 
+import { AgentPatchApproval, AgentTaskEvent } from "../agent/agentTypes";
 import { ResearchFlowAgentContextItem, ResearchFlowAgentService } from "../services/researchFlowAgentService";
 
 type ChatRole = "user" | "assistant";
@@ -26,17 +27,39 @@ interface WebviewClearContext {
   type: "clearContext";
 }
 
+interface WebviewApprovePatch {
+  type: "approvePatch";
+  taskId: string;
+  patchId: string;
+}
+
+interface WebviewRejectPatch {
+  type: "rejectPatch";
+  taskId: string;
+  patchId: string;
+}
+
+interface WebviewCancelTask {
+  type: "cancelTask";
+  taskId: string;
+}
+
 type WebviewInboundMessage =
   | WebviewSendMessage
   | WebviewAddCurrentFile
   | WebviewAddFiles
   | WebviewRemoveContext
-  | WebviewClearContext;
+  | WebviewClearContext
+  | WebviewApprovePatch
+  | WebviewRejectPatch
+  | WebviewCancelTask;
 
-export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider {
+export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = "researchflow.chat";
 
   private view?: vscode.WebviewView;
+  private activeTaskId?: string;
+  private taskEventSubscription?: vscode.Disposable;
   private readonly contextItems: ResearchFlowAgentContextItem[] = [];
 
   public constructor(
@@ -67,8 +90,21 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       if (message.type === "clearContext") {
         this.clearContextItems();
       }
+      if (message.type === "approvePatch") {
+        void this.handlePatchApproval(message.taskId, message.patchId, "approved");
+      }
+      if (message.type === "rejectPatch") {
+        void this.handlePatchApproval(message.taskId, message.patchId, "rejected");
+      }
+      if (message.type === "cancelTask") {
+        void this.handleCancelTask(message.taskId);
+      }
     });
     this.postContextItems();
+  }
+
+  public dispose(): void {
+    this.taskEventSubscription?.dispose();
   }
 
   private async handleSendMessage(text: string): Promise<void> {
@@ -81,13 +117,44 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
     this.postSetBusy(true);
 
     try {
-      const reply = await this.agentService.sendMessage(trimmedText, this.contextItems);
-      this.postAppendMessage("assistant", reply.text);
+      this.taskEventSubscription?.dispose();
+      const task = await this.agentService.startTask(trimmedText, this.contextItems);
+      this.activeTaskId = task.id;
+      this.postSetActiveTask(task.id);
+      this.taskEventSubscription = this.agentService.onTaskEvent(task.id, (event) => {
+        this.handleAgentTaskEvent(event);
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       this.postError(`ResearchFlow Agent failed: ${message}`);
-    } finally {
       this.postSetBusy(false);
+    }
+  }
+
+  private async handlePatchApproval(taskId: string, patchId: string, approval: AgentPatchApproval): Promise<void> {
+    try {
+      await this.agentService.approveTaskPatch(taskId, patchId, approval);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      this.postError(`Failed to ${approval === "approved" ? "approve" : "reject"} patch: ${message}`);
+    }
+  }
+
+  private async handleCancelTask(taskId: string): Promise<void> {
+    try {
+      await this.agentService.cancelTask(taskId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      this.postError(`Failed to cancel task: ${message}`);
+    }
+  }
+
+  private handleAgentTaskEvent(event: AgentTaskEvent): void {
+    this.postTaskEvent(event);
+    if (event.type === "status" && isTerminalStatus(event.status)) {
+      this.activeTaskId = undefined;
+      this.postSetBusy(false);
+      this.postSetActiveTask(undefined);
     }
   }
 
@@ -165,6 +232,14 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
     void this.view?.webview.postMessage({ type: "setBusy", busy });
   }
 
+  private postSetActiveTask(taskId: string | undefined): void {
+    void this.view?.webview.postMessage({ type: "setActiveTask", taskId });
+  }
+
+  private postTaskEvent(event: AgentTaskEvent): void {
+    void this.view?.webview.postMessage({ type: "taskEvent", event });
+  }
+
   private postError(message: string): void {
     void this.view?.webview.postMessage({ type: "error", message });
   }
@@ -222,7 +297,8 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       padding: 16px;
     }
 
-    .message {
+    .message,
+    .task-event {
       margin: 0 0 12px;
       padding: 8px 10px;
       border: 1px solid var(--vscode-panel-border);
@@ -236,11 +312,17 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       background: var(--vscode-input-background);
     }
 
-    .message.assistant {
+    .message.assistant,
+    .task-event {
       background: var(--vscode-editorWidget-background);
     }
 
-    .role {
+    .task-event.patch {
+      background: var(--vscode-textCodeBlock-background, var(--vscode-editorWidget-background));
+    }
+
+    .role,
+    .task-label {
       display: block;
       margin-bottom: 5px;
       color: var(--vscode-descriptionForeground);
@@ -256,6 +338,26 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       color: var(--vscode-inputValidation-errorForeground);
       border-radius: 6px;
       line-height: 1.4;
+    }
+
+    .patch-body {
+      max-height: 260px;
+      overflow: auto;
+      margin: 8px 0;
+      padding: 8px;
+      background: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: var(--vscode-editor-font-size, 12px);
+      white-space: pre;
+    }
+
+    .task-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
     }
 
     .composer {
@@ -367,7 +469,7 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
 </head>
 <body>
   <main id="messages" class="messages" aria-live="polite">
-    <div id="empty" class="empty">Ask ResearchFlow about your project, data, analysis, or writing workflow.</div>
+    <div id="empty" class="empty">Assign ResearchFlow an implementation task for this workspace.</div>
   </main>
   <form id="composer" class="composer">
     <div class="context-bar">
@@ -378,8 +480,9 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       <div id="contextItems" class="context-bar"></div>
     </div>
     <div class="input-row">
-      <textarea id="input" rows="3" aria-label="Message ResearchFlow" placeholder="Message ResearchFlow"></textarea>
-      <button id="send" type="submit">Send</button>
+      <textarea id="input" rows="3" aria-label="Assign ResearchFlow Agent task" placeholder="Assign an implementation task"></textarea>
+      <button id="send" type="submit">Start</button>
+      <button id="cancelTask" class="secondary-button" type="button" disabled>Cancel</button>
     </div>
   </form>
   <script nonce="${nonce}">
@@ -389,11 +492,13 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
     const composer = document.getElementById("composer");
     const input = document.getElementById("input");
     const send = document.getElementById("send");
+    const cancelTask = document.getElementById("cancelTask");
     const addCurrentFile = document.getElementById("addCurrentFile");
     const addFiles = document.getElementById("addFiles");
     const clearContext = document.getElementById("clearContext");
     const contextItems = document.getElementById("contextItems");
     let busy = false;
+    let activeTaskId;
 
     composer.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -404,6 +509,12 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         sendMessage();
+      }
+    });
+
+    cancelTask.addEventListener("click", () => {
+      if (activeTaskId) {
+        vscode.postMessage({ type: "cancelTask", taskId: activeTaskId });
       }
     });
 
@@ -426,6 +537,13 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       }
       if (message.type === "setBusy") {
         setBusy(message.busy);
+      }
+      if (message.type === "setActiveTask") {
+        activeTaskId = message.taskId;
+        cancelTask.disabled = !activeTaskId;
+      }
+      if (message.type === "taskEvent") {
+        appendTaskEvent(message.event);
       }
       if (message.type === "error") {
         appendError(message.message);
@@ -462,6 +580,111 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       messages.scrollTop = messages.scrollHeight;
     }
 
+    function appendTaskEvent(event) {
+      if (!event) {
+        return;
+      }
+
+      if (event.type === "patchReady") {
+        appendPatchEvent(event);
+        return;
+      }
+
+      if (event.type === "assistantText") {
+        appendMessage("assistant", event.text);
+        return;
+      }
+
+      const text = formatTaskEvent(event);
+      if (!text) {
+        return;
+      }
+
+      clearEmpty();
+      const item = document.createElement("article");
+      item.className = "task-event";
+
+      const label = document.createElement("strong");
+      label.className = "task-label";
+      label.textContent = event.type;
+
+      const body = document.createElement("div");
+      body.textContent = text;
+
+      item.append(label, body);
+      messages.append(item);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function appendPatchEvent(event) {
+      clearEmpty();
+      const patch = event.patch;
+      const item = document.createElement("article");
+      item.className = "task-event patch";
+
+      const label = document.createElement("strong");
+      label.className = "task-label";
+      label.textContent = "patch proposal";
+
+      const title = document.createElement("div");
+      title.textContent = patch.title + ": " + patch.summary;
+
+      const body = document.createElement("pre");
+      body.className = "patch-body";
+      body.textContent = patch.patch;
+
+      const actions = document.createElement("div");
+      actions.className = "task-actions";
+
+      const approve = document.createElement("button");
+      approve.type = "button";
+      approve.textContent = "Approve";
+      approve.addEventListener("click", () => {
+        approve.disabled = true;
+        reject.disabled = true;
+        vscode.postMessage({ type: "approvePatch", taskId: event.taskId, patchId: patch.id });
+      });
+
+      const reject = document.createElement("button");
+      reject.type = "button";
+      reject.className = "secondary-button";
+      reject.textContent = "Reject";
+      reject.addEventListener("click", () => {
+        approve.disabled = true;
+        reject.disabled = true;
+        vscode.postMessage({ type: "rejectPatch", taskId: event.taskId, patchId: patch.id });
+      });
+
+      actions.append(approve, reject);
+      item.append(label, title, body, actions);
+      messages.append(item);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function formatTaskEvent(event) {
+      if (event.type === "status") {
+        if (event.status === "completed" || event.status === "failed" || event.status === "cancelled") {
+          setBusy(false);
+          activeTaskId = undefined;
+          cancelTask.disabled = true;
+        }
+        return "Task " + event.taskId + " is " + event.status + ".";
+      }
+      if (event.type === "toolLog") {
+        return event.message;
+      }
+      if (event.type === "approvalRequired") {
+        return "Approval required for patch " + event.patchId + ".";
+      }
+      if (event.type === "verification") {
+        return (event.success ? "Verification passed: " : "Verification failed: ") + event.output;
+      }
+      if (event.type === "error") {
+        return event.message;
+      }
+      return "";
+    }
+
     function appendError(text) {
       clearEmpty();
       const item = document.createElement("div");
@@ -475,7 +698,7 @@ export class ResearchFlowChatViewProvider implements vscode.WebviewViewProvider 
       busy = Boolean(nextBusy);
       send.disabled = busy;
       input.disabled = busy;
-      send.textContent = busy ? "Sending" : "Send";
+      send.textContent = busy ? "Running" : "Start";
       if (!busy) {
         input.focus();
       }
@@ -526,4 +749,8 @@ function getNonce(): string {
   }
 
   return text;
+}
+
+function isTerminalStatus(status: string): boolean {
+  return status === "completed" || status === "failed" || status === "cancelled";
 }

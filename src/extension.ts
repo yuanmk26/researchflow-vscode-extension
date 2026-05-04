@@ -192,6 +192,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     projectsTreeDisposable,
+    researchFlowAgentService,
     referencesTreeDisposable,
     analysisTreeView,
     writingTreeDisposable,
